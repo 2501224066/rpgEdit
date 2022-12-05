@@ -1,5 +1,5 @@
 <template>
-  <div class="level">层级</div>
+  <div class="top">顶部</div>
 </template>
 
 <script>
@@ -7,9 +7,8 @@ export default {};
 </script>
 
 <style lang="less" scoped>
-.level {
-  width: 100px;
-  height: 90vh;
-  background: #ccc;
+.top {
+  height: 10vh;
+  border-bottom: 1px solid #e5e5e5;
 }
 </style>

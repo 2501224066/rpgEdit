@@ -8,6 +8,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.0.10",
     "element-plus": "^2.2.26",
+    "fabric": "^5.2.4",
     "vue": "^3.0.4"
   },
   "devDependencies": {

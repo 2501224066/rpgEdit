@@ -2,13 +2,6 @@
   <Home />
 </template>
 
-<script>
-import Home from "./page/home/index.vue";
-
-export default {
-  name: "App",
-  components: {
-    Home,
-  },
-};
+<script setup lang="ts">
+import Home from "/@/page/home/index.vue";
 </script>

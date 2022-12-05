@@ -3,22 +3,19 @@
     <div class="title">
       <span>素材库</span>
 
-      <el-upload
-        :show-file-list="false"
-        class="upload-demo"
-        multiple
-        :limit="3"
-        :before-upload="beforeUpload"
-      >
+      <el-upload :show-file-list="false" class="upload-demo" multiple :limit="3" :before-upload="beforeUpload">
         <span class="add">
-          <el-icon size="20"><Upload /></el-icon>
-          <span>上传</span>
+          <el-icon size="14"><Upload /></el-icon>
+          <span style="margin-left: 4px">上传</span>
         </span>
       </el-upload>
     </div>
 
     <div class="content">
-      <div class="item" v-for="(item, index) in fileList" :key="index">
+      <div class="item" @click="emit('joinImg', '/@/assets/logo.png')">
+        <img src="/@/assets/logo.png" />
+      </div>
+      <div class="item" v-for="(item, index) in fileList" :key="index" @click="emit('joinImg', item)">
         <img :src="item" />
       </div>
     </div>
@@ -27,6 +24,8 @@
 
 <script lang="ts" setup>
 import { ref } from "vue";
+
+const emit = defineEmits(["joinImg"]);
 
 const fileList = ref<any[]>([]);
 
@@ -45,9 +44,10 @@ const beforeUpload = (file) => {
 .source {
   width: 300px;
   height: 90vh;
+  background: #f7f7f7;
+  border-right: 1px solid #e5e5e5;
   .title {
-    background: rgb(5, 109, 232);
-    color: #fff;
+    background: #fff;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -56,9 +56,10 @@ const beforeUpload = (file) => {
       display: flex;
       align-items: center;
       background: #fff;
+      border: 1px solid #e5e5e5;
       padding: 2px 6px;
       font-size: 12px;
-      color: #222;
+      color: #666;
       border-radius: 4px;
     }
   }
@@ -71,14 +72,14 @@ const beforeUpload = (file) => {
     .item {
       width: 80px;
       height: 80px;
-      background: #f6f6f6;
-      border-radius: 6px;
+      border: 1px solid #e5e5e5;
+      background: #fff;
       margin: 5px;
       overflow: hidden;
       img {
         width: 80px;
         height: 80px;
-        object-fit: contain;
+        object-fit: cover;
       }
     }
   }
