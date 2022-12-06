@@ -3,7 +3,7 @@
     <div class="title">
       <span>素材库</span>
 
-      <el-upload :show-file-list="false" class="upload-demo" multiple :limit="3" :before-upload="beforeUpload">
+      <el-upload :show-file-list="false" class="upload-demo" multiple :before-upload="beforeUpload">
         <span class="add">
           <el-icon size="14"><Upload /></el-icon>
           <span style="margin-left: 4px">上传</span>
@@ -70,15 +70,15 @@ const beforeUpload = (file) => {
     padding: 5px;
     overflow: auto;
     .item {
-      width: 80px;
-      height: 80px;
+      width: 50px;
+      height: 50px;
       border: 1px solid #e5e5e5;
       background: #fff;
       margin: 5px;
       overflow: hidden;
       img {
-        width: 80px;
-        height: 80px;
+        width: 50px;
+        height: 50px;
         object-fit: cover;
       }
     }
