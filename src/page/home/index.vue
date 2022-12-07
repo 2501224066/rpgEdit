@@ -15,17 +15,19 @@
             <span>粘贴</span>
             <span>Ctrl + </span>
           </div>
+          <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
           <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
             <span>删除</span>
             <span>Delete</span>
           </div>
+          <div class="br"></div>
           <div class="item" @click="selectAll">
             <span>全选</span>
             <span>Ctrl + A</span>
           </div>
         </span>
 
-        <Operation />
+        <Operation @cav-zoom="cavZoom" />
 
         <canvas ref="cav" id="cav"></canvas>
       </div>
@@ -43,7 +45,7 @@ import { ElMessage } from "element-plus";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
-let joinMaxWidth: number = 200; // 插入元素最大宽度
+let joinMaxWidth: number = 100; // 插入元素最大宽度
 let canvas: any = null; // 画布
 let rmenuShowStatus = ref(false);
 let clipboard: any = null; // 画布
@@ -61,20 +63,25 @@ onMounted(() => {
 
 // 初始化
 const init = () => {
-  document.onkeydown = function (event) {
-    if (event.ctrlKey && event.keyCode == 67) {
-      copy();
-    }
-    if (event.ctrlKey && event.keyCode == 86) {
-      parse();
-    }
-    if (event.ctrlKey && event.keyCode == 65) {
-      selectAll();
-    }
-    if (event.keyCode == 45) {
-      del();
-    }
-  };
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.ctrlKey && event.code == "KeyC") {
+        copy();
+      }
+      if (event.ctrlKey && event.code == "KeyV") {
+        parse();
+      }
+      if (event.ctrlKey && event.code == "KeyA") {
+        selectAll();
+      }
+      if (event.code == "Backspace") {
+        del();
+      }
+    },
+    true
+  );
+
   document.onmousemove = function (e) {
     let evt = e || (window.event as any);
     evtToCavX = evt.pageX - cavBox.value.offsetLeft;
@@ -84,6 +91,16 @@ const init = () => {
 
 //  右键菜单显示
 const rmenuShow = () => {
+  if (!canvas.getActiveObject()) {
+    var obj = canvas.getObjects();
+    obj.forEach((item) => {
+      if (item.containsPoint(new fabric.Point(evtToCavX, evtToCavY))) {
+        canvas.setActiveObject(item);
+      }
+    });
+    canvas.renderAll();
+  }
+
   rmenuShowStatus.value = true;
   rmenu.value.style.left = evtToCavX + "px";
   rmenu.value.style.top = evtToCavY + "px";
@@ -120,8 +137,8 @@ const parse = () => {
     clipboard.clone(function (clonedObj) {
       canvas.discardActiveObject();
       clonedObj.set({
-        left: evtToCavX < 0 ? 0 : evtToCavX,
-        top: evtToCavY < 0 ? 0 : evtToCavY,
+        left: evtToCavX < 10 ? 10 : evtToCavX - 10,
+        top: evtToCavY < 10 ? 10 : evtToCavY - 10,
         evented: true,
       });
       if (clonedObj.type === "activeSelection") {
@@ -155,9 +172,15 @@ const copy = () => {
 
 // 删除
 const del = () => {
-  canvas.getActiveObjects().forEach((obj) => {
+  let activeObj = canvas.getActiveObjects();
+  activeObj.forEach((obj) => {
+    obj.group.set("cornerColor", "#fff");
+    obj.group.set("cornerStrokeColor", "#fff");
+    obj.group.set("borderColor", "#fff");
+    obj.group.set("selectionBackgroundColor", "#fff");
     canvas.remove(obj);
   });
+  canvas.renderAll();
 };
 
 // 选中操作框样式
@@ -205,7 +228,26 @@ const joinImg = (imgBase64: string) => {
       })
     );
     canvas.add(imgInstance);
+    joinCopy(imgInstance);
   };
+};
+
+// 插入立刻复制
+const joinCopy = (obj) => {
+  canvas.setActiveObject(obj);
+  copy();
+};
+
+// 画布缩放
+const cavZoom = (type, withEvt = false) => {
+  let x = cavBox.value.offsetWidth / 2;
+  let y = cavBox.value.offsetHeight / 2;
+  if (withEvt) {
+    x = evtToCavX;
+    y = evtToCavY;
+  }
+  var zoomPoint = new fabric.Point(x, y);
+  canvas.zoomToPoint(zoomPoint, canvas.getZoom() + (type == "big" ? 0.1 : -0.1));
 };
 </script>
 
@@ -251,6 +293,11 @@ const joinImg = (imgBase64: string) => {
         :nth-child(2) {
           color: #ccc;
         }
+      }
+      .br {
+        height: 2px;
+        background: #ededed;
+        margin: 4px 0;
       }
     }
   }
