@@ -27,7 +27,13 @@
           </div>
         </span>
 
-        <Operation @cav-zoom="cavZoom" />
+        <Operation
+          @cav-zoom="cavZoom"
+          @join-text="joinText"
+          @set-style="setStyle"
+          :top-show="hasActiveObj"
+          :canvas="canvas"
+        />
 
         <canvas ref="cav" id="cav"></canvas>
       </div>
@@ -40,21 +46,22 @@ import Top from "/@/components/top.vue";
 import Source from "./components/source.vue";
 import Operation from "./components/operation.vue";
 import { fabric } from "fabric";
-import { onMounted, ref } from "vue";
+import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
-let joinMaxWidth: number = 100; // 插入元素最大宽度
-let canvas: any = null; // 画布
-let rmenuShowStatus = ref(false);
-let clipboard: any = null; // 画布
 let evtToCavX: number = 0; // 鼠标相对画布位置
 let evtToCavY: number = 0; // 鼠标相对画布位置
+let canvas: any = null; // 画布
+let clipboard: any = null; // 复制内容
 
-let rmenu = ref(null);
-let cavBox = ref(null);
-let cav = ref(null);
+const joinMaxWidth: number = 100; // 插入元素最大宽度
+const rmenuShowStatus: Ref = ref(false); // 右键菜单是否显示
+const hasActiveObj: Ref = ref(false); // 当前是否有选中
+const rmenu: Ref = ref(null); // 右键菜单 Dom
+const cavBox: Ref = ref(null); // canvas容器 Dom
+const cav: Ref = ref(null); // canvas Dom
 
 onMounted(() => {
   init();
@@ -63,25 +70,40 @@ onMounted(() => {
 
 // 初始化
 const init = () => {
+  // 键盘敲击
   window.addEventListener(
     "keydown",
     (event) => {
-      if (event.ctrlKey && event.code == "KeyC") {
+      let key = event.ctrlKey;
+      if (navigator.userAgent.indexOf("Mac OS X") !== -1) {
+        key = event.metaKey;
+      }
+      if (key && event.code == "KeyC") {
         copy();
       }
-      if (event.ctrlKey && event.code == "KeyV") {
+      if (key && event.code == "KeyV") {
         parse();
       }
-      if (event.ctrlKey && event.code == "KeyA") {
+      if (key && event.code == "KeyA") {
         selectAll();
       }
       if (event.code == "Backspace") {
+        if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         del();
       }
     },
     true
   );
 
+  // 鼠标点击
+  window.addEventListener("click", () => {
+    hasActiveObj.value = false;
+    nextTick(() => {
+      if (canvas.getActiveObject()) hasActiveObj.value = true;
+    });
+  });
+
+  // 鼠标移动位置
   document.onmousemove = function (e) {
     let evt = e || (window.event as any);
     evtToCavX = evt.pageX - cavBox.value.offsetLeft;
@@ -174,26 +196,26 @@ const copy = () => {
 const del = () => {
   let activeObj = canvas.getActiveObjects();
   activeObj.forEach((obj) => {
-    obj.group.set("cornerColor", "#fff");
-    obj.group.set("cornerStrokeColor", "#fff");
-    obj.group.set("borderColor", "#fff");
-    obj.group.set("selectionBackgroundColor", "#fff");
+    if (obj.group) {
+      obj.group.set("cornerColor", "#fff");
+      obj.group.set("cornerStrokeColor", "#fff");
+      obj.group.set("borderColor", "#fff");
+      obj.group.set("selectionBackgroundColor", "#fff");
+    }
     canvas.remove(obj);
   });
   canvas.renderAll();
 };
 
-// 选中操作框样式
-const addOpStyle = (obj: Object) => {
-  return Object.assign(obj, {
-    cornerColor: "#fff",
-    cornerStrokeColor: "#ceecff",
-    borderColor: "#5ecedb",
-    cornerSize: 16,
-    padding: 2,
-    cornerStyle: "circle",
-    selectionBackgroundColor: "rgba(170, 200, 230, 0.1)",
-  });
+// 初始化样式
+const initStyle = () => {
+  fabric.Object.prototype.cornerColor = "#fff";
+  fabric.Object.prototype.cornerStrokeColor = "#ceecff";
+  fabric.Object.prototype.borderColor = "#5ecedb";
+  fabric.Object.prototype.cornerSize = 12;
+  fabric.Object.prototype.padding = 2;
+  fabric.Object.prototype.cornerStyle = "circle";
+  fabric.Object.prototype.selectionBackgroundColor = "rgba(170, 200, 230, 0.1)";
 };
 
 // 创建画布
@@ -203,12 +225,21 @@ const createCanvas = () => {
 
   cav.value.width = cavBox.value.offsetWidth;
   cav.value.height = cavBox.value.offsetHeight;
-
+  initStyle();
   canvas = new fabric.Canvas("cav", {
     selectionBorderColor: "#bbdff4",
     selectionColor: "rgba(189, 224, 244, 0.7)",
     fireRightClick: true,
+    backgroundVpt: false,
   });
+
+  canvas.setBackgroundColor(
+    {
+      source: "/@/assets/bg.jpg",
+      repeat: "repeat",
+    },
+    canvas.renderAll.bind(canvas)
+  );
 };
 
 // 插入图片
@@ -217,24 +248,41 @@ const joinImg = (imgBase64: string) => {
   imgDom.src = imgBase64;
   imgDom.onload = () => {
     const needScale = imgDom.width > joinMaxWidth;
-    var imgInstance = new fabric.Image(
-      imgDom,
-      addOpStyle({
-        left: (cavWidth - (needScale ? joinMaxWidth : imgDom.width)) / 2,
-        top: (cavHeight - (needScale ? imgDom.height * (joinMaxWidth / imgDom.width) : imgDom.height)) / 2,
-        scaleX: needScale ? joinMaxWidth / imgDom.width : 1,
-        scaleY: needScale ? joinMaxWidth / imgDom.width : 1,
-        transparentCorners: false,
-      })
-    );
-    canvas.add(imgInstance);
-    joinCopy(imgInstance);
+    var joinObj = new fabric.Image(imgDom, {
+      left: (cavWidth - (needScale ? joinMaxWidth : imgDom.width)) / 2,
+      top: (cavHeight - (needScale ? imgDom.height * (joinMaxWidth / imgDom.width) : imgDom.height)) / 2,
+      scaleX: needScale ? joinMaxWidth / imgDom.width : 1,
+      scaleY: needScale ? joinMaxWidth / imgDom.width : 1,
+    });
+    canvas.add(joinObj);
+    joinCopy(joinObj);
   };
+};
+
+// 插入文字
+const joinText = () => {
+  var joinObj = new fabric.IText("Text", {
+    left: cavWidth / 2,
+    top: cavHeight / 2,
+    fontSize: 20,
+    fontFamily: "Comic Sans",
+  });
+  canvas.add(joinObj);
+  joinCopy(joinObj);
+};
+
+// 设置样式
+const setStyle = (val) => {
+  canvas.getActiveObjects().forEach((item) => {
+    Object.assign(item, val);
+  });
+  canvas.renderAll();
 };
 
 // 插入立刻复制
 const joinCopy = (obj) => {
   canvas.setActiveObject(obj);
+  hasActiveObj.value = true;
   copy();
 };
 
