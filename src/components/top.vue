@@ -1,7 +1,7 @@
 <template>
   <div class="top">
     <div class="content">
-      <span class="logo">LOGO</span>
+      <span class="logo">MEMO</span>
     </div>
   </div>
 </template>

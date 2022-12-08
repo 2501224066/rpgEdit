@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance, ref, watch } from "vue";
+import { ref, watch } from "vue";
 const props = defineProps({
   topShow: Boolean,
   canvas: Object,
