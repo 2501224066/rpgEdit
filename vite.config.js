@@ -8,7 +8,6 @@ module.exports = {
     preprocessorOptions: {
       less: {
         charset: false,
-        additionalData: '@import "./src/assets/style/global.less";',
       },
     },
   },
