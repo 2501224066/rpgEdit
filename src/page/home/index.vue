@@ -24,7 +24,11 @@
             </div>
             <div class="item" @click="parse">
               <span>粘贴</span>
-              <span>Ctrl + </span>
+              <span>Ctrl + V</span>
+            </div>
+            <div class="item" v-show="canvas && canvas.getActiveObjects().length > 1" @click="merge">
+              <span>合并</span>
+              <span></span>
             </div>
             <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
             <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
@@ -53,8 +57,6 @@ import { fabric } from "fabric";
 import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { copyPath } from "/@/utils/index";
-import { type } from "os";
-import { off } from "process";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -83,6 +85,12 @@ onMounted(() => {
 
 // 初始化
 const init = () => {
+  // 界面变化
+  window.onresize = () => {
+    canvas.setWidth(cavBox.value.offsetWidth);
+    canvas.setHeight(cavBox.value.offsetHeight);
+  };
+
   // 键盘敲击
   window.addEventListener(
     "keydown",
@@ -261,31 +269,33 @@ const addBackImg = () => {
 const joinTx = (data: any) => {
   const regin = getRegin();
 
-  const disable = (obj, data) => {
-    ["tl", "tr", "br", "bl", "ml", "mt", "mr", "mb", "mtr"].forEach((val) => {
-      if (data.hasOwnProperty(val)) {
-        obj.setControlVisible(val, data[val]);
+  const setStyle = (obj, data) => {
+    for (let key in data) {
+      if (["tl", "tr", "br", "bl", "ml", "mt", "mr", "mb", "mtr"].includes(key)) {
+        obj.setControlVisible(key, data[key]);
+        continue;
       }
-    });
+      obj.set(key, data[key]);
+    }
   };
 
   const join = (item) => {
     const type: string = item[0];
     const params: string | object = item[1];
-    const plug: object = item[3] || null;
+    const plug: object = item[2] || null;
     const region = getRegin();
     const joinObj = new fabric[type](
       typeof params == "string"
         ? pathSetRegin(params, regin)
-        : Object.assign(params, {
+        : {
             left: region[0],
             top: region[1],
-          })
+          }
     );
-    if (typeof params != "string") disable(joinObj, params);
+    if (typeof params != "string") setStyle(joinObj, params);
     if (plug) {
       joinObj.set(plug);
-      disable(joinObj, plug);
+      setStyle(joinObj, plug);
     }
     return joinObj;
   };
@@ -331,13 +341,14 @@ const pathSetRegin = (str: string, regin: number[] = null): string => {
 
 // 插入图片
 const joinImg = (imgBase64: string) => {
+  const regin = getRegin();
   let imgDom = new Image();
   imgDom.src = imgBase64;
   imgDom.onload = () => {
     const needScale = imgDom.width > joinMaxWidth;
     let joinObj = new fabric.Image(imgDom, {
-      left: (cavWidth - (needScale ? joinMaxWidth : imgDom.width)) / 2,
-      top: (cavHeight - (needScale ? imgDom.height * (joinMaxWidth / imgDom.width) : imgDom.height)) / 2,
+      left: regin[0],
+      top: regin[1],
       scaleX: needScale ? joinMaxWidth / imgDom.width : 1,
       scaleY: needScale ? joinMaxWidth / imgDom.width : 1,
     });
@@ -431,29 +442,46 @@ const cavZoom = (type, withEvt = false) => {
   var zoomPoint = new fabric.Point(x, y);
   canvas.zoomToPoint(zoomPoint, canvas.getZoom() + (type == "big" ? 0.1 : -0.1));
 };
+
+// 元素合并
+const merge = () => {
+  let arr = canvas.getActiveObjects();
+  del();
+  const group = new fabric.Group(arr, { canvas: canvas });
+  canvas.add(group);
+  joinCopy(group);
+};
 </script>
 
 <style lang="less" scoped>
 .home {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   .content {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: relative;
     .edit {
       flex: 1;
-      height: 90vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       overflow: auto;
       position: relative;
+      width: 100%;
+      height: 100%;
       padding: 10px;
       box-sizing: border-box;
-      background: #efefef;
+      background: #f6f9f9;
       .box {
         position: relative;
+        border: 1px solid #ddd;
+        box-sizing: border-box;
         width: 100%;
         height: 100%;
       }

@@ -491,7 +491,7 @@ const getTopData = () => {
       align-items: center;
       margin-bottom: 5px;
       & > :nth-child(1) {
-        width: 50px;
+        width: 54px;
       }
       & > :nth-child(2) {
         flex: 1;
@@ -501,6 +501,11 @@ const getTopData = () => {
 
   .active {
     background: #d3d7dc;
+  }
+
+  /deep/ .el-color-picker__mask {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

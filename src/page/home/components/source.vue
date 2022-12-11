@@ -16,8 +16,8 @@
     </div>
 
     <div class="content" v-show="imgsShow">
-      <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.png')">
-        <img src="/@/assets/imgs/logo.png" />
+      <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.jpg')">
+        <img src="/@/assets/imgs/logo.jpg" />
       </div>
       <div class="item" v-for="(item, index) in fileList" :key="index" @click="emit('joinImg', item)">
         <img :src="item" />
@@ -47,10 +47,11 @@ const beforeUpload = (file) => {
 
 <style lang="less" scoped>
 .source {
-  width: 300px;
-  height: 90vh;
   background: #fdfdfd;
   border-right: 1px solid #e5e5e5;
+  position: relative;
+  width: 300px;
+  height: 100%;
   .title {
     display: flex;
     justify-content: space-between;
