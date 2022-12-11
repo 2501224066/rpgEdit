@@ -13,7 +13,7 @@
           @join-text="joinText"
           @set-style="setStyle"
           @join-tx="joinTx"
-          @join-pen="joinPen"
+          @set-pen="setPen"
         />
 
         <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
@@ -53,6 +53,8 @@ import { fabric } from "fabric";
 import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { copyPath } from "/@/utils/index";
+import { type } from "os";
+import { off } from "process";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -368,12 +370,37 @@ const joinText = () => {
   joinCopy(joinObj);
 };
 
-// 插入画笔
-const joinPen = (status) => {
-  canvas.isDrawingMode = status;
+// 设置画笔
+const setPen = (obj) => {
+  for (let key in obj) {
+    if (key == "status") {
+      canvas.isDrawingMode = obj[key];
+      return;
+    }
 
-  //canvas.freeDrawingBrush.width = 20;
-  //canvas.freeDrawingBrush.color = "pink";
+    if (key != "shadow") {
+      canvas.freeDrawingBrush[key] = obj[key];
+      return;
+    }
+
+    for (let i in obj[key]) {
+      if (i != "status") {
+        canvas.freeDrawingBrush.shadow[i] = obj[key][i];
+        continue;
+      }
+
+      if (obj[key][i]) {
+        canvas.freeDrawingBrush.shadow = new fabric.Shadow({
+          blur: 6, // 羽化程度
+          offsetX: 10, // x轴偏移量
+          offsetY: 10, // y轴偏移量
+          color: "#30e3ca", // 投影颜色
+        });
+      } else {
+        canvas.freeDrawingBrush.shadow = null;
+      }
+    }
+  }
 };
 
 // 设置样式

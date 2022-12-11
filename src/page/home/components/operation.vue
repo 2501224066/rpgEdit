@@ -23,7 +23,10 @@
           </div>
         </el-popover>
       </div>
-      <div :class="{ item: true, active: penStatus }" @click="(penStatus = !penStatus), emit('joinPen', penStatus)">
+      <div
+        :class="{ item: true, active: pen.status }"
+        @click="(pen.status = !pen.status), emit('setPen', { status: pen.status })"
+      >
         <img src="/@/assets/imgs/pen.png" style="width: 22px; height: 22px" />
       </div>
     </div>
@@ -126,6 +129,114 @@
       <span class="size">{{ zoom }}%</span>
       <span class="zoom" @click="(zoom += 10), emit('cavZoom', 'big')">+</span>
     </div>
+
+    <!-- 画笔 -->
+    <div class="pen" v-show="pen.status">
+      <span>画笔设置</span>
+      <div>
+        <div>粗细</div>
+        <div>
+          <el-slider
+            v-model="pen.weight"
+            :min="1"
+            :max="20"
+            :marks="{
+              5: '',
+              10: '',
+              15: '',
+            }"
+            @change="
+              (val) => {
+                emit('setPen', { width: val });
+              }
+            "
+          />
+        </div>
+      </div>
+      <div>
+        <div>色彩</div>
+        <div>
+          <el-color-picker
+            show-alpha
+            v-model="pen.color"
+            :predefine="predefine"
+            @active-change="(val) => emit('setPen', { color: val })"
+          />
+        </div>
+      </div>
+      <div class="b"></div>
+      <div>
+        <div>虚线</div>
+        <div>
+          <el-switch
+            v-model="pen.dash"
+            @change="
+              (val) => {
+                emit('setPen', { strokeDashArray: val ? [pen.dash1, pen.dash2] : [] });
+              }
+            "
+          />
+        </div>
+      </div>
+      <div v-show="pen.dash">
+        <div>虚线阶段</div>
+        <div>
+          <el-slider
+            v-model="pen.dash1"
+            :min="1"
+            :max="20"
+            :marks="{
+              5: '',
+              10: '',
+              15: '',
+            }"
+            @change="
+              (val) => {
+                emit('setPen', { strokeDashArray: [pen.dash1, val] });
+              }
+            "
+          />
+        </div>
+      </div>
+      <div v-show="pen.dash">
+        <div>虚线间距</div>
+        <div>
+          <el-slider
+            v-model="pen.dash2"
+            :min="1"
+            :max="20"
+            :marks="{
+              5: '',
+              10: '',
+              15: '',
+            }"
+            @change="
+              (val) => {
+                emit('setPen', { strokeDashArray: [pen.dash1, val] });
+              }
+            "
+          />
+        </div>
+      </div>
+      <div class="b"></div>
+      <div>
+        <div>阴影</div>
+        <div>
+          <el-switch v-model="pen.shadow.status" @change="(val) => emit('setPen', { shadow: { status: val } })" />
+        </div>
+      </div>
+      <div v-show="pen.shadow.status">
+        <div>阴影色彩</div>
+        <div>
+          <el-color-picker
+            show-alpha
+            v-model="pen.shadow.color"
+            :predefine="predefine"
+            @active-change="(val) => emit('setPen', { shadow: { color: val } })"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -138,7 +249,7 @@ const props = defineProps({
   canvas: Object,
   defaultStyle: Object,
 });
-const emit = defineEmits(["cavZoom", "joinText", "setStyle", "joinTx", "joinPen"]);
+const emit = defineEmits(["cavZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen"]);
 
 const zoom: Ref = ref(100); // 缩放比
 const fontFamily: Ref = ref(props.defaultStyle.fontFamily); // 字体
@@ -195,7 +306,15 @@ const fActive: Ref = ref({
 const textAlignVisible: Ref = ref(false); // 文本位置弹框
 const txVisible: Ref = ref(false); // 图形弹框
 const txList: string[] = ["0", "01", "1", "2", "21", "22", "23", "24", "3", "31", "4", "5", "6", "61"]; // 图形名称编号
-const penStatus: Ref = ref(false); // 画笔状态
+const pen: Ref = ref({
+  status: false,
+  color: "#000000",
+  weight: 1,
+  dash: false,
+  dash1: 5,
+  dash2: 10,
+  shadow: { status: false, color: "#30e3ca" },
+});
 
 watch(
   () => props.hasActiveObj,
@@ -346,6 +465,37 @@ const getTopData = () => {
       display: inline-block;
       width: 50px;
       text-align: center;
+    }
+  }
+
+  .pen {
+    position: absolute;
+    width: 200px;
+    top: 40px;
+    right: 40px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: rgb(209 209 209) 0px 0px 3px 1px;
+    padding: 10px;
+    & > span {
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .b {
+      border-top: 1px solid #eee;
+    }
+    & > div {
+      color: #999;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      & > :nth-child(1) {
+        width: 50px;
+      }
+      & > :nth-child(2) {
+        flex: 1;
+      }
     }
   }
 
