@@ -1,7 +1,11 @@
 <template>
   <div class="source">
-    <div class="title">
-      <span>素材库</span>
+    <div class="title" @click="imgsShow = !imgsShow">
+      <span>
+        <el-icon color="#999" v-show="!imgsShow"><CaretRight /></el-icon>
+        <el-icon color="#999" v-show="imgsShow"><CaretBottom /></el-icon>
+        素材库
+      </span>
 
       <el-upload :show-file-list="false" class="upload-demo" multiple :before-upload="beforeUpload">
         <span class="add">
@@ -11,9 +15,9 @@
       </el-upload>
     </div>
 
-    <div class="content">
-      <div class="item" @click="emit('joinImg', '/@/assets/logo.png')">
-        <img src="/@/assets/logo.png" />
+    <div class="content" v-show="imgsShow">
+      <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.png')">
+        <img src="/@/assets/imgs/logo.png" />
       </div>
       <div class="item" v-for="(item, index) in fileList" :key="index" @click="emit('joinImg', item)">
         <img :src="item" />
@@ -23,11 +27,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { Ref, ref } from "vue";
 
 const emit = defineEmits(["joinImg"]);
 
-const fileList = ref<any[]>([]);
+const fileList: Ref = ref([]);
+const imgsShow: Ref = ref(true);
 
 const beforeUpload = (file) => {
   const reader = new FileReader();
@@ -44,14 +49,17 @@ const beforeUpload = (file) => {
 .source {
   width: 300px;
   height: 90vh;
-  background: #f7f7f7;
+  background: #fdfdfd;
   border-right: 1px solid #e5e5e5;
   .title {
-    background: #fff;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px;
+    border-bottom: 1px solid #e5e5e5;
+    &:active {
+      background: #dbf2fa;
+    }
     .add {
       display: flex;
       align-items: center;

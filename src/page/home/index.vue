@@ -1,11 +1,10 @@
 <template>
   <div class="home">
     <Top />
-
     <div class="content" @click="rmenuHid">
       <Source @join-img="joinImg" />
 
-      <div class="edit" ref="cavBox" @contextmenu.prevent="rmenuShow">
+      <div class="edit">
         <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
           <div class="item" @click="copy">
             <span>复制</span>
@@ -28,14 +27,18 @@
         </span>
 
         <Operation
+          :has-active-obj="hasActiveObj"
+          :canvas="canvas"
+          :default-style="defaultStyle"
           @cav-zoom="cavZoom"
           @join-text="joinText"
           @set-style="setStyle"
-          :top-show="hasActiveObj"
-          :canvas="canvas"
+          @join-tx="joinTx"
         />
 
-        <canvas ref="cav" id="cav"></canvas>
+        <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
+          <canvas ref="cav" id="cav"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -48,6 +51,7 @@ import Operation from "./components/operation.vue";
 import { fabric } from "fabric";
 import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { copyPath } from "/@/utils/index";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -62,6 +66,12 @@ const hasActiveObj: Ref = ref(false); // 当前是否有选中
 const rmenu: Ref = ref(null); // 右键菜单 Dom
 const cavBox: Ref = ref(null); // canvas容器 Dom
 const cav: Ref = ref(null); // canvas Dom
+const defaultStyle: Object = {
+  fontFamily: "Comic Sans",
+  fontSize: 20,
+  fill: "#222222",
+  backgroundColor: "rgba(250,250,250,0)",
+}; // 默认元素样式
 
 onMounted(() => {
   init();
@@ -106,8 +116,9 @@ const init = () => {
   // 鼠标移动位置
   document.onmousemove = function (e) {
     let evt = e || (window.event as any);
-    evtToCavX = evt.pageX - cavBox.value.offsetLeft;
-    evtToCavY = evt.pageY - cavBox.value.offsetParent.offsetTop;
+    const r = cav.value.getBoundingClientRect();
+    evtToCavX = evt.pageX - r.left;
+    evtToCavY = evt.pageY - r.top;
   };
 };
 
@@ -141,12 +152,11 @@ const rmenuHid = () => {
 
 // 全选
 const selectAll = () => {
-  let g = new fabric.Group(canvas.getObjects());
-  canvas.clear();
-  canvas.add(g);
-  canvas.setActiveObject(g);
-  canvas.getActiveObject().toActiveSelection();
-  canvas.renderAll();
+  canvas.discardActiveObject();
+  let sel = new fabric.ActiveSelection(canvas.getObjects(), { canvas: canvas });
+  canvas.setActiveObject(sel);
+  canvas.requestRenderAll();
+  hasActiveObj.value = true;
 };
 
 // 粘贴
@@ -159,8 +169,8 @@ const parse = () => {
     clipboard.clone(function (clonedObj) {
       canvas.discardActiveObject();
       clonedObj.set({
-        left: evtToCavX < 10 ? 10 : evtToCavX - 10,
-        top: evtToCavY < 10 ? 10 : evtToCavY - 10,
+        left: evtToCavX, //< 10 ? 10 : evtToCavX - 10,
+        top: evtToCavY, //< 10 ? 10 : evtToCavY - 10,
         evented: true,
       });
       if (clonedObj.type === "activeSelection") {
@@ -196,18 +206,13 @@ const copy = () => {
 const del = () => {
   let activeObj = canvas.getActiveObjects();
   activeObj.forEach((obj) => {
-    if (obj.group) {
-      obj.group.set("cornerColor", "#fff");
-      obj.group.set("cornerStrokeColor", "#fff");
-      obj.group.set("borderColor", "#fff");
-      obj.group.set("selectionBackgroundColor", "#fff");
-    }
     canvas.remove(obj);
   });
-  canvas.renderAll();
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
 };
 
-// 初始化样式
+// 初始化 fabric.Object
 const initStyle = () => {
   fabric.Object.prototype.cornerColor = "#fff";
   fabric.Object.prototype.cornerStrokeColor = "#ceecff";
@@ -216,6 +221,8 @@ const initStyle = () => {
   fabric.Object.prototype.padding = 2;
   fabric.Object.prototype.cornerStyle = "circle";
   fabric.Object.prototype.selectionBackgroundColor = "rgba(170, 200, 230, 0.1)";
+  fabric.Object.prototype.fill = "#fff";
+  fabric.Object.prototype.stroke = "#000";
 };
 
 // 创建画布
@@ -233,22 +240,88 @@ const createCanvas = () => {
     backgroundVpt: false,
   });
 
+  addBackImg();
+};
+
+// 添加背景图
+const addBackImg = () => {
   canvas.setBackgroundColor(
     {
-      source: "/@/assets/bg.jpg",
+      source: "/@/assets/imgs/bg.jpg",
       repeat: "repeat",
     },
     canvas.renderAll.bind(canvas)
   );
 };
 
+// 插入图形
+const joinTx = (data: any) => {
+  const regin = getRegin();
+
+  const join = (item) => {
+    const type = item[0];
+    const params = item[1];
+    const region = getRegin();
+    const joinObj = new fabric[type](
+      typeof params == "string"
+        ? pathSetRegin(params, regin)
+        : Object.assign(params, {
+            left: region[0],
+            top: region[1],
+          })
+    );
+    if (item[2]) {
+      joinObj.set(item[2]);
+    }
+    return joinObj;
+  };
+
+  if (typeof data[0] != "string") {
+    const arr = [];
+    data.forEach((item) => {
+      arr.push(join(item));
+    });
+    const group = new fabric.Group(arr, { canvas: canvas });
+    canvas.a; //dd(group);
+    joinCopy(group);
+  } else {
+    typeof data[1] == "string" && copyPath(data[1]);
+    const res = join(data);
+    canvas.add(res);
+    joinCopy(res);
+  }
+};
+
+// 随机绘图区域计算
+const getRegin = (): number[] => {
+  return [
+    cavWidth / 4 + +Math.random().toFixed(2) * (cavWidth / 2),
+    cavHeight / 4 + +Math.random().toFixed(2) * (cavHeight / 2),
+  ];
+};
+
+// path 路径改写
+const pathSetRegin = (str: string, regin: number[] = null): string => {
+  const arr = str.split(" ");
+  if (!regin) regin = getRegin();
+  const res = arr
+    .reduce((init, val) => {
+      if (val.includes("rX")) val = eval(val.replace("rX", regin[0].toString())).toFixed(2);
+      if (val.includes("rY")) val = eval(val.replace("rY", regin[1].toString())).toFixed(2);
+      init.push(val);
+      return init;
+    }, [])
+    .join(" ");
+  return res;
+};
+
 // 插入图片
 const joinImg = (imgBase64: string) => {
-  var imgDom = new Image();
+  let imgDom = new Image();
   imgDom.src = imgBase64;
   imgDom.onload = () => {
     const needScale = imgDom.width > joinMaxWidth;
-    var joinObj = new fabric.Image(imgDom, {
+    let joinObj = new fabric.Image(imgDom, {
       left: (cavWidth - (needScale ? joinMaxWidth : imgDom.width)) / 2,
       top: (cavHeight - (needScale ? imgDom.height * (joinMaxWidth / imgDom.width) : imgDom.height)) / 2,
       scaleX: needScale ? joinMaxWidth / imgDom.width : 1,
@@ -261,25 +334,39 @@ const joinImg = (imgBase64: string) => {
 
 // 插入文字
 const joinText = () => {
-  var joinObj = new fabric.IText("Text", {
-    left: cavWidth / 2,
-    top: cavHeight / 2,
-    fontSize: 20,
-    fontFamily: "Comic Sans",
-  });
+  let joinObj = new fabric.Textbox(
+    "Welcome",
+    Object.assign(
+      {
+        left: cavWidth / 2 - 45,
+        top: cavHeight / 2,
+        width: 90,
+        splitByGrapheme: true,
+      },
+      defaultStyle
+    )
+  );
+  joinObj.setControlVisible("mt", false);
+  joinObj.setControlVisible("mb", false);
+  joinObj.setControlVisible("bl", false);
+  joinObj.setControlVisible("br", false);
+  joinObj.setControlVisible("tl", false);
+  joinObj.setControlVisible("tr", false);
   canvas.add(joinObj);
   joinCopy(joinObj);
 };
 
 // 设置样式
-const setStyle = (val) => {
+const setStyle = (obj) => {
   canvas.getActiveObjects().forEach((item) => {
-    Object.assign(item, val);
+    for (let k in obj) {
+      item.set(k, obj[k]);
+    }
   });
   canvas.renderAll();
 };
 
-// 插入立刻复制
+// 插入立刻复制并选中
 const joinCopy = (obj) => {
   canvas.setActiveObject(obj);
   hasActiveObj.value = true;
@@ -315,6 +402,14 @@ const cavZoom = (type, withEvt = false) => {
       align-items: center;
       overflow: auto;
       position: relative;
+      padding: 10px;
+      box-sizing: border-box;
+      background: #efefef;
+      .box {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ddd;
+      }
     }
     .rmenu {
       position: absolute;
