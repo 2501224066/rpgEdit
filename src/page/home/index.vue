@@ -282,7 +282,7 @@ const joinTx = (data: any) => {
       arr.push(join(item));
     });
     const group = new fabric.Group(arr, { canvas: canvas });
-    canvas.a; //dd(group);
+    canvas.add(group);
     joinCopy(group);
   } else {
     typeof data[1] == "string" && copyPath(data[1]);
