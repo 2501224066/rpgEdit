@@ -18,6 +18,10 @@
 
         <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
           <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
+            <div class="item" @click="cancel">
+              <span>取消</span>
+              <span>Esc</span>
+            </div>
             <div class="item" @click="copy">
               <span>复制</span>
               <span>Ctrl + C</span>
@@ -28,7 +32,7 @@
             </div>
             <div class="item" v-show="canvas && canvas.getActiveObjects().length > 1" @click="merge">
               <span>合并</span>
-              <span></span>
+              <span>Ctrl + E</span>
             </div>
             <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
             <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
@@ -108,9 +112,15 @@ const init = () => {
       if (key && event.code == "KeyA") {
         selectAll();
       }
+      if (key && event.code == "KeyE") {
+        merge();
+      }
       if (event.code == "Backspace" || event.code == "Delete") {
         if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         del();
+      }
+      if (event.code == "Escape") {
+        cancel();
       }
     },
     true
@@ -450,6 +460,13 @@ const merge = () => {
   const group = new fabric.Group(arr, { canvas: canvas });
   canvas.add(group);
   joinCopy(group);
+};
+
+// 取消选择
+const cancel = () => {
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  hasActiveObj.value = false;
 };
 </script>
 
