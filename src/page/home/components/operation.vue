@@ -503,7 +503,7 @@ const getTopData = () => {
     background: #d3d7dc;
   }
 
-  /deep/ .el-color-picker__mask {
+  :deep(.el-color-picker__mask) {
     width: 32px;
     height: 32px;
   }
