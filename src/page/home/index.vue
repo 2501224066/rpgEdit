@@ -5,27 +5,6 @@
       <Source @join-img="joinImg" />
 
       <div class="edit">
-        <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
-          <div class="item" @click="copy">
-            <span>复制</span>
-            <span>Ctrl + C</span>
-          </div>
-          <div class="item" @click="parse">
-            <span>粘贴</span>
-            <span>Ctrl + </span>
-          </div>
-          <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
-          <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
-            <span>删除</span>
-            <span>Delete</span>
-          </div>
-          <div class="br"></div>
-          <div class="item" @click="selectAll">
-            <span>全选</span>
-            <span>Ctrl + A</span>
-          </div>
-        </span>
-
         <Operation
           :has-active-obj="hasActiveObj"
           :canvas="canvas"
@@ -34,9 +13,31 @@
           @join-text="joinText"
           @set-style="setStyle"
           @join-tx="joinTx"
+          @join-pen="joinPen"
         />
 
         <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
+          <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
+            <div class="item" @click="copy">
+              <span>复制</span>
+              <span>Ctrl + C</span>
+            </div>
+            <div class="item" @click="parse">
+              <span>粘贴</span>
+              <span>Ctrl + </span>
+            </div>
+            <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
+            <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
+              <span>删除</span>
+              <span>Delete</span>
+            </div>
+            <div class="br"></div>
+            <div class="item" @click="selectAll">
+              <span>全选</span>
+              <span>Ctrl + A</span>
+            </div>
+          </span>
+
           <canvas ref="cav" id="cav"></canvas>
         </div>
       </div>
@@ -97,7 +98,7 @@ const init = () => {
       if (key && event.code == "KeyA") {
         selectAll();
       }
-      if (event.code == "Backspace") {
+      if (event.code == "Backspace" || event.code == "Delete") {
         if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         del();
       }
@@ -122,7 +123,7 @@ const init = () => {
   };
 };
 
-//  右键菜单显示
+// 右键菜单显示
 const rmenuShow = () => {
   if (!canvas.getActiveObject()) {
     var obj = canvas.getObjects();
@@ -135,8 +136,8 @@ const rmenuShow = () => {
   }
 
   rmenuShowStatus.value = true;
-  rmenu.value.style.left = evtToCavX + "px";
-  rmenu.value.style.top = evtToCavY + "px";
+  rmenu.value.style.left = +evtToCavX + "px";
+  rmenu.value.style.top = +evtToCavY + "px";
   if (evtToCavX + rmenu.value.offsetWidth > cav.value.offsetWidth) {
     rmenu.value.style.left = evtToCavX - rmenu.value.offsetWidth + "px";
   }
@@ -258,9 +259,18 @@ const addBackImg = () => {
 const joinTx = (data: any) => {
   const regin = getRegin();
 
+  const disable = (obj, data) => {
+    ["tl", "tr", "br", "bl", "ml", "mt", "mr", "mb", "mtr"].forEach((val) => {
+      if (data.hasOwnProperty(val)) {
+        obj.setControlVisible(val, data[val]);
+      }
+    });
+  };
+
   const join = (item) => {
-    const type = item[0];
-    const params = item[1];
+    const type: string = item[0];
+    const params: string | object = item[1];
+    const plug: object = item[3] || null;
     const region = getRegin();
     const joinObj = new fabric[type](
       typeof params == "string"
@@ -270,8 +280,10 @@ const joinTx = (data: any) => {
             top: region[1],
           })
     );
-    if (item[2]) {
-      joinObj.set(item[2]);
+    if (typeof params != "string") disable(joinObj, params);
+    if (plug) {
+      joinObj.set(plug);
+      disable(joinObj, plug);
     }
     return joinObj;
   };
@@ -285,7 +297,7 @@ const joinTx = (data: any) => {
     canvas.add(group);
     joinCopy(group);
   } else {
-    typeof data[1] == "string" && copyPath(data[1]);
+    //typeof data[1] == "string" && copyPath(data[1]);
     const res = join(data);
     canvas.add(res);
     joinCopy(res);
@@ -356,6 +368,14 @@ const joinText = () => {
   joinCopy(joinObj);
 };
 
+// 插入画笔
+const joinPen = (status) => {
+  canvas.isDrawingMode = status;
+
+  //canvas.freeDrawingBrush.width = 20;
+  //canvas.freeDrawingBrush.color = "pink";
+};
+
 // 设置样式
 const setStyle = (obj) => {
   canvas.getActiveObjects().forEach((item) => {
@@ -406,9 +426,9 @@ const cavZoom = (type, withEvt = false) => {
       box-sizing: border-box;
       background: #efefef;
       .box {
+        position: relative;
         width: 100%;
         height: 100%;
-        border: 1px solid #ddd;
       }
     }
     .rmenu {
