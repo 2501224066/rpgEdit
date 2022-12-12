@@ -2,18 +2,20 @@
   <div class="home">
     <Top />
     <div class="content" @click="rmenuHid">
-      <Source @join-img="joinImg" />
+      <Source @join-img="joinImg" @join-tx="joinTx" />
 
       <div class="edit">
         <Operation
           :has-active-obj="hasActiveObj"
           :canvas="canvas"
           :default-style="defaultStyle"
+          :history="history"
           @cav-zoom="cavZoom"
           @join-text="joinText"
           @set-style="setStyle"
           @join-tx="joinTx"
           @set-pen="setPen"
+          @set-history="setHistory"
         />
 
         <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
@@ -75,12 +77,13 @@ const hasActiveObj: Ref = ref(false); // 当前是否有选中
 const rmenu: Ref = ref(null); // 右键菜单 Dom
 const cavBox: Ref = ref(null); // canvas容器 Dom
 const cav: Ref = ref(null); // canvas Dom
-const defaultStyle: Object = {
+const defaultStyle: object = {
   fontFamily: "Comic Sans",
   fontSize: 20,
   fill: "#222222",
   backgroundColor: "rgba(250,250,250,0)",
 }; // 默认元素样式
+const history: Ref = ref({ record: true, before: [], after: [] }); // 历史记录
 
 onMounted(() => {
   init();
@@ -156,14 +159,20 @@ const rmenuShow = () => {
   }
 
   rmenuShowStatus.value = true;
-  rmenu.value.style.left = +evtToCavX + "px";
-  rmenu.value.style.top = +evtToCavY + "px";
-  if (evtToCavX + rmenu.value.offsetWidth > cav.value.offsetWidth) {
-    rmenu.value.style.left = evtToCavX - rmenu.value.offsetWidth + "px";
-  }
-  if (evtToCavY + rmenu.value.offsetHeight > cav.value.offsetHeight) {
-    rmenu.value.style.top = evtToCavX - rmenu.value.offsetHeight + "px";
-  }
+  rmenu.value.style.left = "-1000px";
+  rmenu.value.style.top = "-1000px";
+  nextTick(() => {
+    let left = +evtToCavX + "px";
+    let top = +evtToCavY + "px";
+    if (evtToCavX + rmenu.value.offsetWidth > cav.value.offsetWidth) {
+      left = evtToCavX - rmenu.value.offsetWidth + "px";
+    }
+    if (evtToCavY + rmenu.value.offsetHeight > cav.value.offsetHeight) {
+      top = evtToCavY - rmenu.value.offsetHeight + "px";
+    }
+    rmenu.value.style.left = left;
+    rmenu.value.style.top = top;
+  });
 };
 
 // 右键菜单隐藏
@@ -261,18 +270,42 @@ const createCanvas = () => {
     backgroundVpt: false,
   });
 
-  addBackImg();
+  historySaveAction();
+  canvas.on({
+    "object:added": historySaveAction,
+    "object:removed": historySaveAction,
+    "object:modified": historySaveAction,
+    "object:rotated": historySaveAction,
+    "object:scaled": historySaveAction,
+  });
 };
 
-// 添加背景图
-const addBackImg = () => {
-  canvas.setBackgroundColor(
-    {
-      source: "/@/assets/imgs/bg.jpg",
-      repeat: "repeat",
-    },
-    canvas.renderAll.bind(canvas)
-  );
+// 保存历史记录
+const historySaveAction = () => {
+  if (!history.value.record) return;
+  history.value.after = [];
+  history.value.before.push(canvas.toDatalessJSON());
+};
+
+// 撤销/回退
+const setHistory = (type) => {
+  history.value.record = false;
+
+  let data = null;
+  if (type == "before") {
+    history.value.after.push(history.value.before[history.value.before.length - 1]);
+    data = history.value.before[history.value.before.length - 2];
+    history.value.before.pop();
+  } else {
+    history.value.before.push(history.value.after[history.value.after.length - 1]);
+    data = history.value.after[history.value.after.length - 1];
+    history.value.after.pop();
+  }
+
+  canvas.loadFromJSON(data, () => {
+    canvas.renderAll();
+    history.value.record = true;
+  });
 };
 
 // 插入图形
@@ -432,6 +465,7 @@ const setStyle = (obj) => {
     }
   });
   canvas.renderAll();
+  historySaveAction();
 };
 
 // 插入立刻复制并选中
@@ -455,8 +489,10 @@ const cavZoom = (type, withEvt = false) => {
 
 // 元素合并
 const merge = () => {
+  history.value.record = false;
   let arr = canvas.getActiveObjects();
   del();
+  history.value.record = true;
   const group = new fabric.Group(arr, { canvas: canvas });
   canvas.add(group);
   joinCopy(group);
@@ -492,9 +528,10 @@ const cancel = () => {
       position: relative;
       width: 100%;
       height: 100%;
-      padding: 10px;
       box-sizing: border-box;
-      background: #f6f9f9;
+      border: 5px solid #f6f9f9;
+      background-image: url("/@/assets/imgs/bg.jpg");
+      background-repeat: repeat;
       .box {
         position: relative;
         border: 1px solid #ddd;

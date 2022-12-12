@@ -125,9 +125,27 @@
 
     <!-- 底部缩放 -->
     <div class="footer">
-      <span class="zoom" @click="(zoom -= 10), emit('cavZoom', 'samll')">-</span>
-      <span class="size">{{ zoom }}%</span>
-      <span class="zoom" @click="(zoom += 10), emit('cavZoom', 'big')">+</span>
+      <div>
+        <span
+          :class="{ ic: true, disable: history.before.length == 1 }"
+          @click="history.before.length == 1 ? null : emit('setHistory', 'before')"
+        >
+          <img src="/@/assets/imgs/undo.png" />
+        </span>
+        <span
+          :class="{ ic: true, disable: history.after.length == 0 }"
+          @click="history.after.length == 0 ? null : emit('setHistory', 'after')"
+        >
+          <img src="/@/assets/imgs/redo.png" />
+        </span>
+        <span class="ic" @click="(zoom -= 10), emit('cavZoom', 'samll')">
+          <img src="/@/assets/imgs/small.png" />
+        </span>
+        <span class="size">{{ zoom }}%</span>
+        <span class="ic" @click="(zoom += 10), emit('cavZoom', 'big')">
+          <img src="/@/assets/imgs/big.png" />
+        </span>
+      </div>
     </div>
 
     <!-- 画笔 -->
@@ -248,8 +266,9 @@ const props = defineProps({
   hasActiveObj: Boolean,
   canvas: Object,
   defaultStyle: Object,
+  history: Object,
 });
-const emit = defineEmits(["cavZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen"]);
+const emit = defineEmits(["cavZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory"]);
 
 const zoom: Ref = ref(100); // 缩放比
 const fontFamily: Ref = ref(props.defaultStyle.fontFamily); // 字体
@@ -351,7 +370,7 @@ const getTopData = () => {
   z-index: 1;
   .left {
     position: absolute;
-    left: 40px;
+    left: 20px;
     top: 30vh;
     display: flex;
     flex-direction: column;
@@ -384,7 +403,7 @@ const getTopData = () => {
     height: 40px;
     position: absolute;
     left: 40px;
-    top: 40px;
+    top: 20px;
     background-color: #fafbfc;
     border: 1px solid #e8e8e8;
     padding: 0px 0 0px 10px;
@@ -443,15 +462,21 @@ const getTopData = () => {
 
   .footer {
     position: fixed;
-    right: 40px;
-    bottom: 40px;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    align-items: center;
     background: #fff;
     border-radius: 4px;
     box-shadow: rgb(209 209 209) 0px 0px 3px 1px;
     padding: 4px;
-    .zoom {
+    img {
+      width: 16px;
+      height: 16px;
+    }
+    .ic {
       display: inline-block;
-      padding: 4px 16px;
+      padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
       &:hover {
@@ -501,6 +526,11 @@ const getTopData = () => {
 
   .active {
     background: #d3d7dc;
+  }
+
+  .disable {
+    opacity: 0.2;
+    cursor: not-allowed !important;
   }
 
   :deep(.el-color-picker__mask) {
