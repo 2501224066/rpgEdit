@@ -10,7 +10,8 @@
           :canvas="canvas"
           :default-style="defaultStyle"
           :history="history"
-          @cav-zoom="cavZoom"
+          :zoom="zoom"
+          @set-zoom="setZoom"
           @join-text="joinText"
           @set-style="setStyle"
           @join-tx="joinTx"
@@ -84,6 +85,7 @@ const defaultStyle: object = {
   backgroundColor: "rgba(250,250,250,0)",
 }; // 默认元素样式
 const history: Ref = ref({ record: true, before: [], after: [] }); // 历史记录
+const zoom: Ref = ref(100); // 缩放比
 
 onMounted(() => {
   init();
@@ -118,6 +120,12 @@ const init = () => {
       if (key && event.code == "KeyE") {
         merge();
       }
+      if (key && event.shiftKey && event.code == "KeyZ") {
+        setHistory("after");
+      }
+      if (key && !event.shiftKey && event.code == "KeyZ") {
+        setHistory("before");
+      }
       if (event.code == "Backspace" || event.code == "Delete") {
         if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         del();
@@ -136,14 +144,6 @@ const init = () => {
       if (canvas.getActiveObject()) hasActiveObj.value = true;
     });
   });
-
-  // 鼠标移动位置
-  document.onmousemove = function (e) {
-    let evt = e || (window.event as any);
-    const r = cav.value.getBoundingClientRect();
-    evtToCavX = evt.pageX - r.left;
-    evtToCavY = evt.pageY - r.top;
-  };
 };
 
 // 右键菜单显示
@@ -199,8 +199,8 @@ const parse = () => {
     clipboard.clone(function (clonedObj) {
       canvas.discardActiveObject();
       clonedObj.set({
-        left: evtToCavX, //< 10 ? 10 : evtToCavX - 10,
-        top: evtToCavY, //< 10 ? 10 : evtToCavY - 10,
+        left: evtToCavX,
+        top: evtToCavY,
         evented: true,
       });
       if (clonedObj.type === "activeSelection") {
@@ -277,7 +277,14 @@ const createCanvas = () => {
     "object:modified": historySaveAction,
     "object:rotated": historySaveAction,
     "object:scaled": historySaveAction,
+    "mouse:move": getCavMove,
   });
+};
+
+const getCavMove = (event) => {
+  var pointer = canvas.getPointer(event);
+  evtToCavX = pointer.x;
+  evtToCavY = pointer.y;
 };
 
 // 保存历史记录
@@ -289,8 +296,10 @@ const historySaveAction = () => {
 
 // 撤销/回退
 const setHistory = (type) => {
-  history.value.record = false;
+  if (type == "before" && history.value.before.length == 1) return;
+  if (type == "after" && history.value.after.length == 0) return;
 
+  history.value.record = false;
   let data = null;
   if (type == "before") {
     history.value.after.push(history.value.before[history.value.before.length - 1]);
@@ -326,13 +335,13 @@ const joinTx = (data: any) => {
     const type: string = item[0];
     const params: string | object = item[1];
     const plug: object = item[2] || null;
-    const region = getRegin();
+    typeof params == "string" && !params.includes("rX") && copyPath(params);
     const joinObj = new fabric[type](
       typeof params == "string"
         ? pathSetRegin(params, regin)
         : {
-            left: region[0],
-            top: region[1],
+            left: regin[0],
+            top: regin[1],
           }
     );
     if (typeof params != "string") setStyle(joinObj, params);
@@ -352,7 +361,6 @@ const joinTx = (data: any) => {
     canvas.add(group);
     joinCopy(group);
   } else {
-    //typeof data[1] == "string" && copyPath(data[1]);
     const res = join(data);
     canvas.add(res);
     joinCopy(res);
@@ -476,13 +484,11 @@ const joinCopy = (obj) => {
 };
 
 // 画布缩放
-const cavZoom = (type, withEvt = false) => {
+const setZoom = (type, withEvt = false) => {
+  if (zoom.value == 10 && type == "small") return;
+  zoom.value = zoom.value + (type == "big" ? 10 : -10);
   let x = cavBox.value.offsetWidth / 2;
   let y = cavBox.value.offsetHeight / 2;
-  if (withEvt) {
-    x = evtToCavX;
-    y = evtToCavY;
-  }
   var zoomPoint = new fabric.Point(x, y);
   canvas.zoomToPoint(zoomPoint, canvas.getZoom() + (type == "big" ? 0.1 : -0.1));
 };

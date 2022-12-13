@@ -138,11 +138,11 @@
         >
           <img src="/@/assets/imgs/redo.png" />
         </span>
-        <span class="ic" @click="(zoom -= 10), emit('cavZoom', 'samll')">
+        <span :class="{ ic: true, disable: zoom == 10 }" @click="emit('setZoom', 'small')">
           <img src="/@/assets/imgs/small.png" />
         </span>
-        <span class="size">{{ zoom }}%</span>
-        <span class="ic" @click="(zoom += 10), emit('cavZoom', 'big')">
+        <span class="size">{{ props.zoom }}%</span>
+        <span class="ic" @click="emit('setZoom', 'big')">
           <img src="/@/assets/imgs/big.png" />
         </span>
       </div>
@@ -267,10 +267,10 @@ const props = defineProps({
   canvas: Object,
   defaultStyle: Object,
   history: Object,
+  zoom: Number,
 });
-const emit = defineEmits(["cavZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory"]);
+const emit = defineEmits(["setZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory"]);
 
-const zoom: Ref = ref(100); // 缩放比
 const fontFamily: Ref = ref(props.defaultStyle.fontFamily); // 字体
 const fontFamilyList: string[] = [
   "Arial",

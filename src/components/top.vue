@@ -24,7 +24,7 @@
     height: 100%;
     font-size: 34px;
     font-weight: bolder;
-    border-right: 1px solid #ccc;
+    border-right: 1px solid #e5e5e5;
     padding: 0 20px;
     background: #efefef;
     display: flex;

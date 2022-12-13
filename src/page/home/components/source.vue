@@ -1,49 +1,45 @@
 <template>
   <div class="source">
     <div class="item">
-      <div class="title">
-        <span @click="flowShow = !flowShow">
+      <div class="title" @click="flowShow = !flowShow">
+        <span>
           <el-icon color="#999" v-show="!flowShow"><CaretRight /></el-icon>
           <el-icon color="#999" v-show="flowShow"><CaretBottom /></el-icon>
           流程图
         </span>
-
-        <span></span>
       </div>
 
       <div class="content" v-show="flowShow">
         <div
-          class="item"
+          class="item flow"
           v-for="(item, index) in flowJoinData"
           :key="index"
           @click="emit('joinTx', flowJoinData[index])"
         >
-          {{ index }}
+          <img :src="'/@/assets/imgs/img' + index + '.png'" />
         </div>
       </div>
     </div>
     <div class="item">
-      <div class="title">
-        <span @click="imgsShow = !imgsShow">
+      <div class="title" @click="imgsShow = !imgsShow">
+        <span>
           <el-icon color="#999" v-show="!imgsShow"><CaretRight /></el-icon>
           <el-icon color="#999" v-show="imgsShow"><CaretBottom /></el-icon>
           素材库
         </span>
-
-        <el-upload :show-file-list="false" class="upload-demo" multiple :before-upload="beforeUpload">
-          <span class="add">
-            <el-icon size="14"><Upload /></el-icon>
-            <span style="margin-left: 4px">上传</span>
-          </span>
-        </el-upload>
       </div>
 
       <div class="content" v-show="imgsShow">
-        <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.jpg')">
-          <img src="/@/assets/imgs/logo.jpg" />
-        </div>
+        <el-upload :show-file-list="false" class="upload-demo" multiple :before-upload="beforeUpload">
+          <div class="item">
+            <img src="/@/assets/imgs/addImg.png" style="width: 20px; height: 20px" />
+          </div>
+        </el-upload>
         <div class="item" v-for="(item, index) in fileList" :key="index" @click="emit('joinImg', item)">
           <img :src="item" />
+        </div>
+        <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.jpg')">
+          <img src="/@/assets/imgs/logo.jpg" />
         </div>
       </div>
     </div>
@@ -81,26 +77,17 @@ const beforeUpload = (file) => {
   height: 100%;
   .item {
     .title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
+      position: relative;
       border-bottom: 1px solid #e5e5e5;
       &:active {
-        background: #dbf2fa;
+        background: #dbf2fa !important;
       }
       &:hover {
         background: #eee;
       }
-      .add {
-        display: flex;
-        align-items: center;
-        background: #fff;
-        border: 1px solid #e5e5e5;
-        padding: 2px 6px;
-        font-size: 12px;
-        color: #666;
-        border-radius: 4px;
+      & > span {
+        display: inline-block;
+        padding: 10px;
       }
     }
 
@@ -112,15 +99,28 @@ const beforeUpload = (file) => {
       background: #f7f7f7;
       border-bottom: 1px solid #e5e5e5;
       .item {
+        border: 1px solid #e5e5e5;
+        box-sizing: border-box;
+        margin: 5px;
         width: 50px;
         height: 50px;
-        border: 1px solid #e5e5e5;
-        background: #fff;
-        margin: 5px;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         img {
-          width: 50px;
-          height: 50px;
+          width: 100%;
+          object-fit: cover;
+        }
+      }
+
+      .flow {
+        border: none;
+        width: 36px;
+        height: 36px;
+        img {
+          width: 100%;
           object-fit: cover;
         }
       }
