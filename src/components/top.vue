@@ -2,7 +2,7 @@
   <div class="top">
     <div class="logo">
       <div>
-        <img src="/@/assets/imgs/logo.jpg" />
+        <img src="/images/logo.jpg" />
         MEMO
       </div>
     </div>

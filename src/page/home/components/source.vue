@@ -16,7 +16,7 @@
           :key="index"
           @click="emit('joinTx', flowJoinData[index])"
         >
-          <img :src="'/@/assets/imgs/img' + index + '.png'" />
+          <img :src="'/images/img' + index + '.png'" />
         </div>
       </div>
     </div>
@@ -32,14 +32,14 @@
       <div class="content" v-show="imgsShow">
         <el-upload :show-file-list="false" class="upload-demo" multiple :before-upload="beforeUpload">
           <div class="item">
-            <img src="/@/assets/imgs/addImg.png" style="width: 20px; height: 20px" />
+            <img src="/images/addImg.png" style="width: 20px; height: 20px" />
           </div>
         </el-upload>
         <div class="item" v-for="(item, index) in fileList" :key="index" @click="emit('joinImg', item)">
           <img :src="item" />
         </div>
-        <div class="item" @click="emit('joinImg', '/@/assets/imgs/logo.jpg')">
-          <img src="/@/assets/imgs/logo.jpg" />
+        <div class="item" @click="emit('joinImg', '/images/logo.jpg')">
+          <img src="/images/logo.jpg" />
         </div>
       </div>
     </div>

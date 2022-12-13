@@ -1,6 +1,7 @@
 import { resolve } from "path";
 
 module.exports = {
+  base: "/",
   alias: {
     "/@/": resolve(__dirname, "src"),
   },
@@ -11,4 +12,5 @@ module.exports = {
       },
     },
   },
+  publicDir: "public",
 };

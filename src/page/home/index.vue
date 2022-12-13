@@ -63,7 +63,7 @@ import Operation from "./components/operation.vue";
 import { fabric } from "fabric";
 import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { copyPath } from "/@/utils/index";
+import util from "/@/utils/index";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -335,7 +335,7 @@ const joinTx = (data: any) => {
     const type: string = item[0];
     const params: string | object = item[1];
     const plug: object = item[2] || null;
-    typeof params == "string" && !params.includes("rX") && copyPath(params);
+    typeof params == "string" && !params.includes("rX") && util.copyPath(params);
     const joinObj = new fabric[type](
       typeof params == "string"
         ? pathSetRegin(params, regin)
@@ -536,7 +536,8 @@ const cancel = () => {
       height: 100%;
       box-sizing: border-box;
       border: 5px solid #f6f9f9;
-      background-image: url("/@/assets/imgs/bg.jpg");
+      background-image: url("/images/bg.jpg");
+      background-size: 30px 30px;
       background-repeat: repeat;
       .box {
         position: relative;

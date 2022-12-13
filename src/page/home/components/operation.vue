@@ -3,13 +3,13 @@
     <!-- 左侧工具 -->
     <div class="left">
       <div class="item" @click="emit('joinText')">
-        <img src="/@/assets/imgs/text.png" />
+        <img src="/images/text.png" />
       </div>
       <div :class="{ item: true, active: txVisible }">
         <el-popover placement="right" popper-class="xz" :visible="txVisible" :width="180" :hide-after="0">
           <template #reference>
             <div @click="txVisible = !txVisible">
-              <img src="/@/assets/imgs/xz.png" style="width: 24px; height: 24px" />
+              <img src="/images/xz.png" style="width: 24px; height: 24px" />
             </div>
           </template>
 
@@ -19,7 +19,7 @@
             :key="index"
             @click="emit('joinTx', txJoinData[item]), (txVisible = false)"
           >
-            <img :src="'/@/assets/imgs/tx-' + item + '.png'" />
+            <img :src="'/images/tx-' + item + '.png'" />
           </div>
         </el-popover>
       </div>
@@ -27,7 +27,7 @@
         :class="{ item: true, active: pen.status }"
         @click="(pen.status = !pen.status), emit('setPen', { status: pen.status })"
       >
-        <img src="/@/assets/imgs/pen.png" style="width: 22px; height: 22px" />
+        <img src="/images/pen.png" style="width: 22px; height: 22px" />
       </div>
     </div>
 
@@ -76,27 +76,27 @@
           :class="{ f: true, active: fActive.b }"
           @click="emit('setStyle', { fontWeight: fActive.b ? 'normal' : 'bold' })"
         >
-          <img src="/@/assets/imgs/f-b.png" />
+          <img src="/images/f-b.png" />
         </div>
         <div
           :class="{ f: true, active: fActive.i }"
           @click="emit('setStyle', { fontStyle: fActive.i ? 'normal' : 'italic' })"
         >
-          <img src="/@/assets/imgs/f-i.png" />
+          <img src="/images/f-i.png" />
         </div>
         <div :class="{ f: true, active: fActive.d }" @click="emit('setStyle', { linethrough: !fActive.d })">
-          <img src="/@/assets/imgs/f-d.png" />
+          <img src="/images/f-d.png" />
         </div>
         <div :class="{ f: true, active: fActive.u }" @click="emit('setStyle', { underline: !fActive.u })">
-          <img src="/@/assets/imgs/f-u.png" />
+          <img src="/images/f-u.png" />
         </div>
         <div :class="{ f: true, active: textAlignVisible }">
           <el-popover placement="top-start" popper-class="textAlign" :visible="textAlignVisible" :hide-after="0">
             <template #reference>
               <div class="f" @click="textAlignVisible = !textAlignVisible">
-                <img v-show="fActive.ta == 'left'" src="/@/assets/imgs/a-l.png" />
-                <img v-show="fActive.ta == 'center'" src="/@/assets/imgs/a-c.png" />
-                <img v-show="fActive.ta == 'right'" src="/@/assets/imgs/a-r.png" />
+                <img v-show="fActive.ta == 'left'" src="/images/a-l.png" />
+                <img v-show="fActive.ta == 'center'" src="/images/a-c.png" />
+                <img v-show="fActive.ta == 'right'" src="/images/a-r.png" />
               </div>
             </template>
 
@@ -104,19 +104,19 @@
               :class="{ active: fActive.ta == 'left' }"
               @click="emit('setStyle', { textAlign: 'left' }), (textAlignVisible = false)"
             >
-              <img src="/@/assets/imgs/a-l.png" /> 居左
+              <img src="/images/a-l.png" /> 居左
             </div>
             <div
               :class="{ active: fActive.ta == 'center' }"
               @click="emit('setStyle', { textAlign: 'center' }), (textAlignVisible = false)"
             >
-              <img src="/@/assets/imgs/a-c.png" />居中
+              <img src="/images/a-c.png" />居中
             </div>
             <div
               :class="{ active: fActive.ta == 'right' }"
               @click="emit('setStyle', { textAlign: 'right' }), (textAlignVisible = false)"
             >
-              <img src="/@/assets/imgs/a-r.png" />居右
+              <img src="/images/a-r.png" />居右
             </div>
           </el-popover>
         </div>
@@ -130,20 +130,20 @@
           :class="{ ic: true, disable: history.before.length == 1 }"
           @click="history.before.length == 1 ? null : emit('setHistory', 'before')"
         >
-          <img src="/@/assets/imgs/undo.png" />
+          <img src="/images/undo.png" />
         </span>
         <span
           :class="{ ic: true, disable: history.after.length == 0 }"
           @click="history.after.length == 0 ? null : emit('setHistory', 'after')"
         >
-          <img src="/@/assets/imgs/redo.png" />
+          <img src="/images/redo.png" />
         </span>
         <span :class="{ ic: true, disable: zoom == 10 }" @click="emit('setZoom', 'small')">
-          <img src="/@/assets/imgs/small.png" />
+          <img src="/images/small.png" />
         </span>
         <span class="size">{{ props.zoom }}%</span>
         <span class="ic" @click="emit('setZoom', 'big')">
-          <img src="/@/assets/imgs/big.png" />
+          <img src="/images/big.png" />
         </span>
       </div>
     </div>

@@ -2,7 +2,7 @@ const selfX = null;
 const selfY = null;
 
 // 根据 path 转换为 自定义path
-export function copyPath(str: string): string {
+const copyPath = (str: string): string => {
   const arr = str.split(" ");
   let x = selfX || arr[1];
   let y = selfY || arr[2];
@@ -22,4 +22,8 @@ export function copyPath(str: string): string {
     .join(" ");
   console.log(res);
   return res;
-}
+};
+
+export default {
+  copyPath,
+};
