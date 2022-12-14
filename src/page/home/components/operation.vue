@@ -29,6 +29,9 @@
       >
         <img src="/images/pen.png" style="width: 22px; height: 22px" />
       </div>
+      <div :class="{ item: true, active: props.addArrowStatus }" @click="emit('addArrow')">
+        <img src="/images/arrow.png" />
+      </div>
     </div>
 
     <!-- 顶部样式 -->
@@ -268,8 +271,10 @@ const props = defineProps({
   defaultStyle: Object,
   history: Object,
   zoom: Number,
+  textType: Array,
+  addArrowStatus: Boolean,
 });
-const emit = defineEmits(["setZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory"]);
+const emit = defineEmits(["setZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory", "addArrow"]);
 
 const fontFamily: Ref = ref(props.defaultStyle.fontFamily); // 字体
 const fontFamilyList: string[] = [
@@ -314,7 +319,6 @@ const predefine = [
   "rgba(250,250,250,0)",
 ]; // 自定义色彩
 const fSetShow: Ref = ref(false);
-const textType: string[] = ["textbox"]; // 文本类型列表
 const fActive: Ref = ref({
   b: false,
   i: false,
@@ -347,7 +351,7 @@ const getTopData = () => {
   fSetShow.value = false;
   const activeObj = props.canvas.getActiveObjects();
 
-  if (activeObj.length == 1 && textType.includes(activeObj[0].type)) {
+  if (activeObj.length == 1 && props.textType.includes(activeObj[0].type)) {
     fActive.value.b = activeObj[0].fontWeight == "bold";
     fActive.value.i = activeObj[0].fontStyle == "italic";
     fActive.value.d = activeObj[0].linethrough;

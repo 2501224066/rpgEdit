@@ -252,6 +252,12 @@ export const flowJoinData = {
         fill: "#000000",
       },
     ],
+    {
+      ml: false,
+      mt: false,
+      mr: false,
+      mb: false,
+    },
   ],
   "33": [
     ["Path", "M rX rY L rX+47.26 rY"],
@@ -269,6 +275,12 @@ export const flowJoinData = {
         fill: "#000000",
       },
     ],
+    {
+      ml: false,
+      mt: false,
+      mr: false,
+      mb: false,
+    },
   ],
 };
 

@@ -2,21 +2,24 @@
   <div class="home">
     <Top />
     <div class="content" @click="rmenuHid">
-      <Source @join-img="joinImg" @join-tx="joinTx" />
+      <Source @join-img="joinImg" @join-tx="joinTx" @add-arrow="addArrow" />
 
       <div class="edit">
         <Operation
+          :text-type="textType"
           :has-active-obj="hasActiveObj"
           :canvas="canvas"
           :default-style="defaultStyle"
           :history="history"
           :zoom="zoom"
+          :add-arrow-status="addArrowStatus"
           @set-zoom="setZoom"
           @join-text="joinText"
           @set-style="setStyle"
           @join-tx="joinTx"
           @set-pen="setPen"
           @set-history="setHistory"
+          @add-arrow="addArrow"
         />
 
         <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
@@ -64,6 +67,9 @@ import { fabric } from "fabric";
 import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
 import util from "/@/utils/index";
+import initAligningGuidelines from "/@/utils/initAligningGuidelines";
+import { forEach } from "lodash";
+import { type } from "os";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -72,6 +78,7 @@ let evtToCavY: number = 0; // 鼠标相对画布位置
 let canvas: any = null; // 画布
 let clipboard: any = null; // 复制内容
 
+const textType: string[] = ["textbox"]; // 文本类型列表
 const joinMaxWidth: number = 100; // 插入元素最大宽度
 const rmenuShowStatus: Ref = ref(false); // 右键菜单是否显示
 const hasActiveObj: Ref = ref(false); // 当前是否有选中
@@ -86,6 +93,7 @@ const defaultStyle: object = {
 }; // 默认元素样式
 const history: Ref = ref({ record: true, before: [], after: [] }); // 历史记录
 const zoom: Ref = ref(100); // 缩放比
+const addArrowStatus = ref(false); // 箭头绘制状态
 
 onMounted(() => {
   init();
@@ -112,9 +120,11 @@ const init = () => {
         copy();
       }
       if (key && event.code == "KeyV") {
+        if (textType.includes(canvas.getActiveObjects()[0].type)) return;
         parse();
       }
       if (key && event.code == "KeyA") {
+        if (textType.includes(canvas.getActiveObjects()[0].type)) return;
         selectAll();
       }
       if (key && event.code == "KeyE") {
@@ -182,6 +192,7 @@ const rmenuHid = () => {
 
 // 全选
 const selectAll = () => {
+  if (!canvas.getObjects().length) return;
   canvas.discardActiveObject();
   let sel = new fabric.ActiveSelection(canvas.getObjects(), { canvas: canvas });
   canvas.setActiveObject(sel);
@@ -269,6 +280,7 @@ const createCanvas = () => {
     fireRightClick: true,
     backgroundVpt: false,
   });
+  initAligningGuidelines(canvas, fabric);
 
   historySaveAction();
   canvas.on({
@@ -281,6 +293,99 @@ const createCanvas = () => {
   });
 };
 
+// 开关框选
+const setSelectable = (status) => {
+  canvas.discardActiveObject();
+  canvas.renderAll();
+  canvas.getObjects().forEach((object) => {
+    object.selectable = status;
+  });
+};
+
+// 添加箭头
+const addArrow = () => {
+  addArrowStatus.value = true;
+  setSelectable(false);
+
+  var fromx, fromy, tox, toy;
+  canvas.on("mouse:down", (event) => {
+    var pointer = canvas.getPointer(event.e);
+    fromx = pointer.x;
+    fromy = pointer.y;
+  });
+  canvas.on("mouse:up", (event) => {
+    var pointer = canvas.getPointer(event.e);
+    tox = pointer.x;
+    toy = pointer.y;
+
+    var angle = Math.atan2(toy - fromy, tox - fromx);
+
+    var headlen = 10;
+    tox = tox - headlen * Math.cos(angle);
+    toy = toy - headlen * Math.sin(angle);
+
+    var points = [
+      {
+        x: fromx, // start point
+        y: fromy,
+      },
+      {
+        x: fromx - (headlen / 4) * Math.cos(angle - Math.PI / 2),
+        y: fromy - (headlen / 4) * Math.sin(angle - Math.PI / 2),
+      },
+      {
+        x: tox - (headlen / 4) * Math.cos(angle - Math.PI / 2),
+        y: toy - (headlen / 4) * Math.sin(angle - Math.PI / 2),
+      },
+      {
+        x: tox - headlen * Math.cos(angle - Math.PI / 2),
+        y: toy - headlen * Math.sin(angle - Math.PI / 2),
+      },
+      {
+        x: tox + headlen * Math.cos(angle), // tip
+        y: toy + headlen * Math.sin(angle),
+      },
+      {
+        x: tox - headlen * Math.cos(angle + Math.PI / 2),
+        y: toy - headlen * Math.sin(angle + Math.PI / 2),
+      },
+      {
+        x: tox - (headlen / 4) * Math.cos(angle + Math.PI / 2),
+        y: toy - (headlen / 4) * Math.sin(angle + Math.PI / 2),
+      },
+      {
+        x: fromx - (headlen / 4) * Math.cos(angle + Math.PI / 2),
+        y: fromy - (headlen / 4) * Math.sin(angle + Math.PI / 2),
+      },
+      {
+        x: fromx,
+        y: fromy,
+      },
+    ];
+
+    var pline = new fabric.Polyline(points, {
+      fill: "white",
+      stroke: "black",
+      opacity: 1,
+      strokeWidth: 1,
+      originX: "left",
+      originY: "top",
+      selectable: true,
+      ml: false,
+    });
+    ["ml", "mt", "mr", "mb"].forEach((item) => {
+      pline.setControlVisible(item, false);
+    });
+
+    canvas.add(pline);
+    canvas.off("mouse:down").off("mouse:move").off("mouse:up");
+    setSelectable(true);
+    addArrowStatus.value = false;
+    canvas.renderAll();
+  });
+};
+
+// 获取鼠标位置
 const getCavMove = (event) => {
   var pointer = canvas.getPointer(event);
   evtToCavX = pointer.x;
@@ -319,6 +424,7 @@ const setHistory = (type) => {
 
 // 插入图形
 const joinTx = (data: any) => {
+  if (!data) return;
   const regin = getRegin();
 
   const setStyle = (obj, data) => {
@@ -354,10 +460,16 @@ const joinTx = (data: any) => {
 
   if (typeof data[0] != "string") {
     const arr = [];
+    let groupPlug = {};
     data.forEach((item) => {
+      if (!Array.isArray(item)) {
+        groupPlug = item;
+        return;
+      }
       arr.push(join(item));
     });
     const group = new fabric.Group(arr, { canvas: canvas });
+    setStyle(group, groupPlug);
     canvas.add(group);
     joinCopy(group);
   } else {
@@ -535,14 +647,12 @@ const cancel = () => {
       width: 100%;
       height: 100%;
       box-sizing: border-box;
-      border: 5px solid #f6f9f9;
+      border: 5px solid #ededed;
       background-image: url("/images/bg.jpg");
       background-size: 30px 30px;
       background-repeat: repeat;
       .box {
         position: relative;
-        border: 1px solid #ddd;
-        box-sizing: border-box;
         width: 100%;
         height: 100%;
       }
