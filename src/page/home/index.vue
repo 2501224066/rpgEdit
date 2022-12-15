@@ -1,8 +1,8 @@
 <template>
   <div class="home">
-    <Top />
+    <Top @save-img="saveImg" />
     <div class="content" @click="rmenuHid">
-      <Source @join-img="joinImg" @join-tx="joinTx" @add-arrow="addArrow" />
+      <Source @join-img="joinImg" @join-tx="joinTx" />
 
       <div class="edit">
         <Operation
@@ -12,6 +12,7 @@
           :default-style="defaultStyle"
           :history="history"
           :zoom="zoom"
+          :page-size="pageSize"
           :add-arrow-status="addArrowStatus"
           @set-zoom="setZoom"
           @join-text="joinText"
@@ -20,39 +21,42 @@
           @set-pen="setPen"
           @set-history="setHistory"
           @add-arrow="addArrow"
+          @set-page-size="setPageSize"
         />
 
-        <div class="box" ref="cavBox" @contextmenu.prevent="rmenuShow">
-          <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
-            <div class="item" @click="cancel">
-              <span>取消</span>
-              <span>Esc</span>
-            </div>
-            <div class="item" @click="copy">
-              <span>复制</span>
-              <span>Ctrl + C</span>
-            </div>
-            <div class="item" @click="parse">
-              <span>粘贴</span>
-              <span>Ctrl + V</span>
-            </div>
-            <div class="item" v-show="canvas && canvas.getActiveObjects().length > 1" @click="merge">
-              <span>合并</span>
-              <span>Ctrl + E</span>
-            </div>
-            <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
-            <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
-              <span>删除</span>
-              <span>Delete</span>
-            </div>
-            <div class="br"></div>
-            <div class="item" @click="selectAll">
-              <span>全选</span>
-              <span>Ctrl + A</span>
-            </div>
-          </span>
+        <div class="container" ref="container">
+          <div class="box" @contextmenu.prevent="rmenuShow">
+            <span ref="rmenu" class="rmenu" v-show="rmenuShowStatus">
+              <div class="item" @click="cancel">
+                <span>取消</span>
+                <span>Esc</span>
+              </div>
+              <div class="item" @click="copy">
+                <span>复制</span>
+                <span>Ctrl + C</span>
+              </div>
+              <div class="item" @click="parse">
+                <span>粘贴</span>
+                <span>Ctrl + V</span>
+              </div>
+              <div class="item" v-show="canvas && canvas.getActiveObjects().length > 1" @click="merge">
+                <span>合并</span>
+                <span>Ctrl + E</span>
+              </div>
+              <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
+              <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
+                <span>删除</span>
+                <span>Delete</span>
+              </div>
+              <div class="br"></div>
+              <div class="item" @click="selectAll">
+                <span>全选</span>
+                <span>Ctrl + A</span>
+              </div>
+            </span>
 
-          <canvas ref="cav" id="cav"></canvas>
+            <canvas ref="cav" id="cav"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -60,6 +64,7 @@
 </template>
 
 <script lang="ts" setup>
+import html2canvas from "html2canvas";
 import Top from "/@/components/top.vue";
 import Source from "./components/source.vue";
 import Operation from "./components/operation.vue";
@@ -68,8 +73,6 @@ import { nextTick, onMounted, Ref, ref } from "vue";
 import { ElMessage } from "element-plus";
 import util from "/@/utils/index";
 import initAligningGuidelines from "/@/utils/initAligningGuidelines";
-import { forEach } from "lodash";
-import { type } from "os";
 
 let cavWidth: number = 0; // 画布宽
 let cavHeight: number = 0; // 画布高
@@ -83,7 +86,7 @@ const joinMaxWidth: number = 100; // 插入元素最大宽度
 const rmenuShowStatus: Ref = ref(false); // 右键菜单是否显示
 const hasActiveObj: Ref = ref(false); // 当前是否有选中
 const rmenu: Ref = ref(null); // 右键菜单 Dom
-const cavBox: Ref = ref(null); // canvas容器 Dom
+const container: Ref = ref(null); // 容器 Dom
 const cav: Ref = ref(null); // canvas Dom
 const defaultStyle: object = {
   fontFamily: "Comic Sans",
@@ -93,7 +96,8 @@ const defaultStyle: object = {
 }; // 默认元素样式
 const history: Ref = ref({ record: true, before: [], after: [] }); // 历史记录
 const zoom: Ref = ref(100); // 缩放比
-const addArrowStatus = ref(false); // 箭头绘制状态
+const addArrowStatus: Ref = ref(false); // 箭头绘制状态
+const pageSize: Ref = ref({ width: 0, height: 0 });
 
 onMounted(() => {
   init();
@@ -102,12 +106,6 @@ onMounted(() => {
 
 // 初始化
 const init = () => {
-  // 界面变化
-  window.onresize = () => {
-    canvas.setWidth(cavBox.value.offsetWidth);
-    canvas.setHeight(cavBox.value.offsetHeight);
-  };
-
   // 键盘敲击
   window.addEventListener(
     "keydown",
@@ -120,11 +118,11 @@ const init = () => {
         copy();
       }
       if (key && event.code == "KeyV") {
-        if (textType.includes(canvas.getActiveObjects()[0].type)) return;
+        if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         parse();
       }
       if (key && event.code == "KeyA") {
-        if (textType.includes(canvas.getActiveObjects()[0].type)) return;
+        if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
         selectAll();
       }
       if (key && event.code == "KeyE") {
@@ -268,11 +266,9 @@ const initStyle = () => {
 
 // 创建画布
 const createCanvas = () => {
-  cavWidth = cavBox.value.offsetWidth;
-  cavHeight = cavBox.value.offsetHeight;
+  cav.value.width = container.value.offsetWidth;
+  cav.value.height = container.value.offsetHeight;
 
-  cav.value.width = cavBox.value.offsetWidth;
-  cav.value.height = cavBox.value.offsetHeight;
   initStyle();
   canvas = new fabric.Canvas("cav", {
     selectionBorderColor: "#bbdff4",
@@ -280,9 +276,12 @@ const createCanvas = () => {
     fireRightClick: true,
     backgroundVpt: false,
   });
-  initAligningGuidelines(canvas, fabric);
 
+  setPageSize([container.value.offsetWidth, container.value.offsetHeight]);
+  initAligningGuidelines(canvas, fabric);
+  setBgImg();
   historySaveAction();
+
   canvas.on({
     "object:added": historySaveAction,
     "object:removed": historySaveAction,
@@ -290,6 +289,35 @@ const createCanvas = () => {
     "object:rotated": historySaveAction,
     "object:scaled": historySaveAction,
     "mouse:move": getCavMove,
+  });
+};
+
+// 设置背景图
+const setBgImg = (img = null) => {
+  canvas.setBackgroundColor(
+    {
+      source: "/images/bg.jpg",
+      repeat: "repeat",
+    },
+    canvas.renderAll.bind(canvas)
+  );
+};
+
+// 导出
+const saveImg = () => {
+  const filename = "memo";
+  const ext = "png";
+  html2canvas(cav.value, {
+    useCORS: true,
+  }).then((canvas) => {
+    const imageurl = canvas.toDataURL("image/png");
+    const aLink = document.createElement("a");
+    aLink.style.display = "none";
+    aLink.href = imageurl;
+    aLink.download = `${filename}.${ext}`;
+    document.body.appendChild(aLink);
+    aLink.click();
+    document.body.removeChild(aLink);
   });
 };
 
@@ -303,9 +331,19 @@ const setSelectable = (status) => {
 };
 
 // 添加箭头
-const addArrow = () => {
-  addArrowStatus.value = true;
+const addArrow = (status) => {
+  addArrowStatus.value = status;
   setSelectable(false);
+
+  const reset = () => {
+    canvas.off("mouse:down").off("mouse:move").off("mouse:up");
+    setSelectable(true);
+  };
+
+  if (!status) {
+    reset();
+    return;
+  }
 
   var fromx, fromy, tox, toy;
   canvas.on("mouse:down", (event) => {
@@ -378,8 +416,7 @@ const addArrow = () => {
     });
 
     canvas.add(pline);
-    canvas.off("mouse:down").off("mouse:move").off("mouse:up");
-    setSelectable(true);
+    reset();
     addArrowStatus.value = false;
     canvas.renderAll();
   });
@@ -417,7 +454,11 @@ const setHistory = (type) => {
   }
 
   canvas.loadFromJSON(data, () => {
-    canvas.renderAll();
+    if (history.value.before.length == 1) {
+      setBgImg();
+    } else {
+      canvas.renderAll();
+    }
     history.value.record = true;
   });
 };
@@ -528,7 +569,7 @@ const joinText = () => {
       {
         left: cavWidth / 2 - 45,
         top: cavHeight / 2,
-        width: 90,
+        width: 100,
         splitByGrapheme: true,
       },
       defaultStyle
@@ -599,8 +640,8 @@ const joinCopy = (obj) => {
 const setZoom = (type, withEvt = false) => {
   if (zoom.value == 10 && type == "small") return;
   zoom.value = zoom.value + (type == "big" ? 10 : -10);
-  let x = cavBox.value.offsetWidth / 2;
-  let y = cavBox.value.offsetHeight / 2;
+  let x = cavWidth / 2;
+  let y = cavHeight / 2;
   var zoomPoint = new fabric.Point(x, y);
   canvas.zoomToPoint(zoomPoint, canvas.getZoom() + (type == "big" ? 0.1 : -0.1));
 };
@@ -616,11 +657,23 @@ const merge = () => {
   joinCopy(group);
 };
 
-// 取消选择
+// 取消
 const cancel = () => {
   canvas.discardActiveObject();
   canvas.requestRenderAll();
   hasActiveObj.value = false;
+};
+
+// 设置页面大小
+const setPageSize = (arr) => {
+  cavWidth = arr[0];
+  cavHeight = arr[1];
+  pageSize.value = {
+    width: cavWidth,
+    height: cavHeight,
+  };
+  canvas.setWidth(cavWidth);
+  canvas.setHeight(cavHeight);
 };
 </script>
 
@@ -642,19 +695,21 @@ const cancel = () => {
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      overflow: auto;
       position: relative;
       width: 100%;
       height: 100%;
       box-sizing: border-box;
-      border: 5px solid #ededed;
-      background-image: url("/images/bg.jpg");
-      background-size: 30px 30px;
-      background-repeat: repeat;
-      .box {
-        position: relative;
+      background: #f6f9f9;
+
+      .container {
+        position: absolute;
         width: 100%;
         height: 100%;
+        overflow: auto;
+        .box {
+          position: relative;
+          box-shadow: 0 0 4px 3px #ddd;
+        }
       }
     }
     .rmenu {

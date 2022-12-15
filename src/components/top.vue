@@ -6,11 +6,17 @@
         MEMO
       </div>
     </div>
-    <div class="content"></div>
+    <div class="content">
+      <el-button @click="emit('saveImg')" text>
+        <el-icon><Download /></el-icon>导出
+      </el-button>
+    </div>
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const emit = defineEmits(["saveImg"]);
+</script>
 
 <style lang="less" scoped>
 .top {
@@ -41,6 +47,8 @@
     }
   }
   .content {
+    padding: 0 40px;
+    text-align: right;
     flex: 1;
   }
 }

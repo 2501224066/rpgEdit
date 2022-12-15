@@ -5,20 +5,16 @@
       <div class="item" @click="emit('joinText')">
         <img src="/images/text.png" />
       </div>
-      <div :class="{ item: true, active: txVisible }">
-        <el-popover placement="right" popper-class="xz" :visible="txVisible" :width="180" :hide-after="0">
+
+      <div :class="{ item: true }">
+        <el-popover placement="right" popper-class="xz" ref="txVisible" trigger="click" :width="180" :hide-after="0">
           <template #reference>
-            <div @click="txVisible = !txVisible">
+            <div>
               <img src="/images/xz.png" style="width: 24px; height: 24px" />
             </div>
           </template>
 
-          <div
-            :class="{}"
-            v-for="(item, index) in txList"
-            :key="index"
-            @click="emit('joinTx', txJoinData[item]), (txVisible = false)"
-          >
+          <div v-for="(item, index) in txList" :key="index" @click="emit('joinTx', txJoinData[item]), txVisible.hide()">
             <img :src="'/images/tx-' + item + '.png'" />
           </div>
         </el-popover>
@@ -29,7 +25,7 @@
       >
         <img src="/images/pen.png" style="width: 22px; height: 22px" />
       </div>
-      <div :class="{ item: true, active: props.addArrowStatus }" @click="emit('addArrow')">
+      <div :class="{ item: true, active: props.addArrowStatus }" @click="emit('addArrow', !props.addArrowStatus)">
         <img src="/images/arrow.png" />
       </div>
     </div>
@@ -93,10 +89,10 @@
         <div :class="{ f: true, active: fActive.u }" @click="emit('setStyle', { underline: !fActive.u })">
           <img src="/images/f-u.png" />
         </div>
-        <div :class="{ f: true, active: textAlignVisible }">
-          <el-popover placement="top-start" popper-class="textAlign" :visible="textAlignVisible" :hide-after="0">
+        <div :class="{ f: true }">
+          <el-popover placement="top-start" popper-class="textAlign" :ref="textAlignVisible" :hide-after="0">
             <template #reference>
-              <div class="f" @click="textAlignVisible = !textAlignVisible">
+              <div class="f">
                 <img v-show="fActive.ta == 'left'" src="/images/a-l.png" />
                 <img v-show="fActive.ta == 'center'" src="/images/a-c.png" />
                 <img v-show="fActive.ta == 'right'" src="/images/a-r.png" />
@@ -105,19 +101,19 @@
 
             <div
               :class="{ active: fActive.ta == 'left' }"
-              @click="emit('setStyle', { textAlign: 'left' }), (textAlignVisible = false)"
+              @click="emit('setStyle', { textAlign: 'left' }), textAlignVisible.hide()"
             >
               <img src="/images/a-l.png" /> 居左
             </div>
             <div
               :class="{ active: fActive.ta == 'center' }"
-              @click="emit('setStyle', { textAlign: 'center' }), (textAlignVisible = false)"
+              @click="emit('setStyle', { textAlign: 'center' }), textAlignVisible.hide()"
             >
               <img src="/images/a-c.png" />居中
             </div>
             <div
               :class="{ active: fActive.ta == 'right' }"
-              @click="emit('setStyle', { textAlign: 'right' }), (textAlignVisible = false)"
+              @click="emit('setStyle', { textAlign: 'right' }), textAlignVisible.hide()"
             >
               <img src="/images/a-r.png" />居右
             </div>
@@ -126,7 +122,7 @@
       </div>
     </div>
 
-    <!-- 底部缩放 -->
+    <!-- 底部 -->
     <div class="footer">
       <div>
         <span
@@ -148,6 +144,48 @@
         <span class="ic" @click="emit('setZoom', 'big')">
           <img src="/images/big.png" />
         </span>
+        <el-popover
+          :width="100"
+          placement="top-start"
+          trigger="click"
+          popper-class="pageSize"
+          :ref="pageVisible"
+          :hide-after="0"
+        >
+          <template #reference>
+            <span class="ic">
+              <img src="/images/page.png" />
+            </span>
+          </template>
+
+          <div class="content">
+            <el-input-number
+              :model-value="props.pageSize.width"
+              :min="50"
+              :max="3000"
+              :controls="false"
+              size="small"
+              @change="
+                (val) => {
+                  emit('setPageSize', [val, props.pageSize.height]);
+                }
+              "
+            />
+            -
+            <el-input-number
+              :model-value="props.pageSize.height"
+              :min="50"
+              :max="1500"
+              :controls="false"
+              size="small"
+              @change="
+                (val) => {
+                  emit('setPageSize', [props.pageSize.width, val]);
+                }
+              "
+            />
+          </div>
+        </el-popover>
       </div>
     </div>
 
@@ -181,7 +219,12 @@
             show-alpha
             v-model="pen.color"
             :predefine="predefine"
-            @active-change="(val) => emit('setPen', { color: val })"
+            @active-change="
+              (val) => {
+                pen.color = val;
+                emit('setPen', { color: val });
+              }
+            "
           />
         </div>
       </div>
@@ -253,7 +296,12 @@
             show-alpha
             v-model="pen.shadow.color"
             :predefine="predefine"
-            @active-change="(val) => emit('setPen', { shadow: { color: val } })"
+            @active-change="
+              (val) => {
+                pen.shadow.color = val;
+                emit('setPen', { shadow: { color: val } });
+              }
+            "
           />
         </div>
       </div>
@@ -273,24 +321,41 @@ const props = defineProps({
   zoom: Number,
   textType: Array,
   addArrowStatus: Boolean,
+  pageSize: Object,
 });
-const emit = defineEmits(["setZoom", "joinText", "setStyle", "joinTx", "joinPen", "setPen", "setHistory", "addArrow"]);
+const emit = defineEmits([
+  "setZoom",
+  "joinText",
+  "setStyle",
+  "joinTx",
+  "joinPen",
+  "setPen",
+  "setHistory",
+  "addArrow",
+  "setPageSize",
+]);
 
 const fontFamily: Ref = ref(props.defaultStyle.fontFamily); // 字体
 const fontFamilyList: string[] = [
-  "Arial",
+  "ArialBlack",
+  "ArialNarrow",
+  "Bookman Old Style",
+  "Courier",
+  "Courier New",
   "Comic Sans",
-  "fangsong",
+  "Comic Sans MS",
+  "Garamond",
   "Georgia",
-  "Helvetica",
-  "Hiragino Sans GB",
-  "Microsoft YaHei",
-  "PingFang SC",
-  "San Francisco",
-  "Segoe UI	",
+  "Impact",
+  "Lucida Sans Unicode",
+  "Lucida Console",
+  "MS Sans Serif",
+  "Palatino Linotype",
+  "Symbol",
+  "Times New Roman",
+  "Trebuchet MS",
   "Tahoma",
-  "WenQuanYi Micro Hei",
-  "宋体",
+  "Verdana",
 ]; // 字体列表
 const fontSize: Ref = ref(props.defaultStyle.fontSize); // 字体大小
 const fontSizeList: number[] = [12, 14, 16, 18, 20, 24, 32, 48, 64]; // 字体大小列表
@@ -326,8 +391,8 @@ const fActive: Ref = ref({
   u: "normal",
   ta: "left",
 }); // 文本样式
-const textAlignVisible: Ref = ref(false); // 文本位置弹框
-const txVisible: Ref = ref(false); // 图形弹框
+const textAlignVisible: Ref = ref(); // 文本位置弹框
+const txVisible: Ref = ref(); // 图形弹框
 const txList: string[] = ["0", "01", "1", "2", "21", "22", "23", "24", "3", "31", "4", "5", "6", "61"]; // 图形名称编号
 const pen: Ref = ref({
   status: false,
@@ -338,6 +403,7 @@ const pen: Ref = ref({
   dash2: 10,
   shadow: { status: false, color: "#30e3ca" },
 });
+const pageVisible: Ref = ref(); // 页面设置弹框
 
 watch(
   () => props.hasActiveObj,
@@ -584,6 +650,20 @@ const getTopData = () => {
     }
     &:hover {
       background: #d6dade;
+    }
+  }
+}
+
+.pageSize {
+  .content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .el-input__wrapper {
+      padding: 0 !important;
+    }
+    .el-input-number {
+      width: 46px;
     }
   }
 }
