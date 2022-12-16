@@ -706,6 +706,10 @@ const setPageSize = (arr) => {
         width: 100%;
         height: 100%;
         overflow: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         .box {
           position: relative;
           box-shadow: 0 0 4px 3px #ddd;
