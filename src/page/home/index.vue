@@ -31,6 +31,11 @@
                 <span>取消</span>
                 <span>Esc</span>
               </div>
+              <div class="br"></div>
+              <div class="item" @click="selectAll">
+                <span>全选</span>
+                <span>Ctrl + A</span>
+              </div>
               <div class="item" @click="copy">
                 <span>复制</span>
                 <span>Ctrl + C</span>
@@ -39,19 +44,28 @@
                 <span>粘贴</span>
                 <span>Ctrl + V</span>
               </div>
-              <div class="item" v-show="canvas && canvas.getActiveObjects().length > 1" @click="merge">
+              <div class="item" @click="merge">
                 <span>合并</span>
                 <span>Ctrl + E</span>
               </div>
-              <div class="br" v-show="canvas && canvas.getActiveObject()"></div>
-              <div class="item" v-show="canvas && canvas.getActiveObject()" @click="del">
-                <span>删除</span>
-                <span>Delete</span>
+              <div class="br"></div>
+              <div class="item" @click="setSelectable(false)">
+                <span>固定</span>
+              </div>
+              <div class="item" @click="setSelectable(true)">
+                <span>取消固定</span>
               </div>
               <div class="br"></div>
-              <div class="item" @click="selectAll">
-                <span>全选</span>
-                <span>Ctrl + A</span>
+
+              <div class="item" @click="setZIndex('up')">
+                <span>上移层级</span>
+              </div>
+              <div class="item" @click="setZIndex('down')">
+                <span>下移层级</span>
+              </div>
+              <div class="item" @click="del">
+                <span>删除</span>
+                <span>Delete</span>
               </div>
             </span>
 
@@ -154,6 +168,16 @@ const init = () => {
   });
 };
 
+// 层级设置
+const setZIndex = (status) => {
+  if (!canvas.getActiveObjects().length) return;
+  canvas.getActiveObjects().forEach((item) => {
+    if (status == "up") canvas.bringForward(item);
+    if (status == "down") canvas.sendBackwards(item);
+  });
+  canvas.renderAll();
+};
+
 // 右键菜单显示
 const rmenuShow = () => {
   if (!canvas.getActiveObject()) {
@@ -243,6 +267,7 @@ const copy = () => {
 
 // 删除
 const del = () => {
+  if (!canvas.getActiveObjects().length) return;
   let activeObj = canvas.getActiveObjects();
   activeObj.forEach((obj) => {
     canvas.remove(obj);
@@ -648,6 +673,7 @@ const setZoom = (type, withEvt = false) => {
 
 // 元素合并
 const merge = () => {
+  if (canvas.getActiveObjects().length < 2) return;
   history.value.record = false;
   let arr = canvas.getActiveObjects();
   del();
